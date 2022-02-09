@@ -430,7 +430,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8cabae0403d95d479da11ff021a9234, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  loadout:
+  weaponDatas:
   - {fileID: 11400000, guid: 441009a569b51ac45b4eac097ffb452e, type: 2}
   weaponPosition: {fileID: 1800708666}
 --- !u!1 &34697646
@@ -29346,7 +29346,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1800708666}
   m_Layer: 0
-  m_Name: weaponPosition
+  m_Name: "\u6B66\u5668\u5EA7\u6A19"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

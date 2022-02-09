@@ -12,19 +12,19 @@ public class scr_PlayerController : MonoBehaviour
 
     [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
     [SerializeField] [Header("玩家攝影機")] Camera playerCamera;
-    [SerializeField] Transform weapon_Trans;
+    [SerializeField] [Header("武器座標")] Transform weapon_Trans;
 
     [HideInInspector] public bool isGrounded;
 
-    bool cursorLocked = true; // 滑鼠鎖定
+    bool cursorLocked = true;          // 滑鼠鎖定
     bool isRunning = false;
 
-    float lookRotation;          // 上下視角旋轉值
+    float lookRotation;                // 上下視角旋轉值
     float walkFOV;
     float runFOV;
 
-    Vector3 moveSmoothVelocity; // 滑順加速度
-    Vector3 moveDir;            // 移動到的位置
+    Vector3 moveSmoothVelocity;        // 滑順加速度
+    Vector3 moveDir;                   // 移動到的位置
 
     Rigidbody rig;
     #endregion
