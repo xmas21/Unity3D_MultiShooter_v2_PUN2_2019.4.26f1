@@ -4,8 +4,11 @@ public class scr_Weapon : MonoBehaviour
 {
     [Header("武器資料")] public scr_WeaponData[] weaponDatas;
     [Header("武器座標")] public Transform weaponPosition;
+    [Header("彈孔預置物")] public GameObject bulletHolePrefab;
+    [Header("可以射擊的圖層")] public LayerMask canBeShot;
 
-    int currentWeaponIndex;
+    int currentWeaponIndex;      // 武器編號
+    float currentCoolDown;
 
     Transform anchor_Trans;      // 武器座標
     Transform base_Trans;        // 一般武器座標
@@ -16,6 +19,7 @@ public class scr_Weapon : MonoBehaviour
     void Update()
     {
         Onclick();
+        CoolDown();
     }
 
     /// <summary>
@@ -24,7 +28,16 @@ public class scr_Weapon : MonoBehaviour
     void Onclick()
     {
         if (Input.GetKeyDown(KeyCode.Alpha1)) Equip(0);
-        if (currentWeapon != null) Aim(Input.GetMouseButton(1));
+        if (currentWeapon != null)
+        {
+            Aim(Input.GetMouseButton(1));
+
+            if (Input.GetMouseButton(0) && currentCoolDown <= 0)
+            {
+                Shoot();
+                currentCoolDown = weaponDatas[currentWeaponIndex].fireRate;
+            }
+        }
     }
 
     /// <summary>
@@ -66,6 +79,32 @@ public class scr_Weapon : MonoBehaviour
         {
             anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, base_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
             anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, base_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+        }
+    }
+
+    /// <summary>
+    /// 製造彈孔
+    /// </summary>
+    void Shoot()
+    {
+        Transform spawn = transform.Find("攝影機座標/玩家攝影機");
+
+        RaycastHit hit = new RaycastHit();
+        if (Physics.Raycast(spawn.position, spawn.forward, out hit, 1000f, canBeShot))
+        {
+            GameObject bulletHole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
+            Destroy(bulletHole, 6f);
+        }
+    }
+
+    /// <summary>
+    /// 槍枝冷卻
+    /// </summary>
+    void CoolDown()
+    {
+        if (currentCoolDown > 0)
+        {
+            currentCoolDown -= Time.deltaTime;
         }
     }
 }

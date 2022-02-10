@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5397134861626122218}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Anchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 5397134861715755575}
   - component: {fileID: 5397134861715755570}
   - component: {fileID: 5397134861715755569}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: "\u6B66\u5668"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -120,7 +120,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5397134861934021003}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Aim
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -151,7 +151,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5397134862033550336}
   - component: {fileID: -4264476394862665726}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Pistol
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -199,7 +199,7 @@ GameObject:
   - component: {fileID: 5397134862088215725}
   - component: {fileID: 5397134862088215720}
   - component: {fileID: 5397134862088215727}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: "\u6B66\u5668"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -276,7 +276,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5397134862276365319}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Resources
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -308,7 +308,7 @@ GameObject:
   - component: {fileID: 5397134862294515647}
   - component: {fileID: 5397134862294515642}
   - component: {fileID: 5397134862294515641}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: "\u6B66\u5668"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -385,7 +385,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5397134862491580929}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: States
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -417,7 +417,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5397134862722837857}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Designs
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -450,7 +450,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5397134862798836238}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Base
   m_TagString: Untagged
   m_Icon: {fileID: 0}

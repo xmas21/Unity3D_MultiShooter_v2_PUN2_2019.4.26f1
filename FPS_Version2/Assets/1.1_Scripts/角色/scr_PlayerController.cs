@@ -2,7 +2,7 @@
 
 public class scr_PlayerController : MonoBehaviour
 {
-    #region -- 欄位 --
+    #region -- 變數 | 欄位 --
     [SerializeField] [Header("滑鼠水平靈敏度")] float mouseSensitivity_X;
     [SerializeField] [Header("滑鼠垂直靈敏度")] float mouseSensitivity_Y;
     [SerializeField] [Header("走路 - 速度")] float walkSpeed;
@@ -16,15 +16,17 @@ public class scr_PlayerController : MonoBehaviour
 
     [HideInInspector] public bool isGrounded;
 
-    bool cursorLocked = true;          // 滑鼠鎖定
+    bool cursorLocked = true;           // 滑鼠鎖定
     bool isRunning = false;
 
-    float lookRotation;                // 上下視角旋轉值
-    float walkFOV;
-    float runFOV;
+    float lookRotation;                 // 上下視角旋轉值
+    float walkFOV;                      // 走路視野
+    float runFOV;                       // 跑步視野
+    float counter;                      // 呼吸武器變數
 
-    Vector3 moveSmoothVelocity;        // 滑順加速度
-    Vector3 moveDir;                   // 移動到的位置
+    Vector3 moveSmoothVelocity;         // 滑順加速度
+    Vector3 moveDir;                    // 移動到的位置
+    Vector3 target_weapon_Trans;        // 武器目標座標
 
     Rigidbody rig;
     #endregion
@@ -49,6 +51,7 @@ public class scr_PlayerController : MonoBehaviour
         View();
         Jump();
         CursorLock();
+        BreathSwitch();
     }
 
     void FixedUpdate()
@@ -131,5 +134,44 @@ public class scr_PlayerController : MonoBehaviour
             rig.AddForce(transform.up * jumpForce);
         }
     }
+
+    /// <summary>
+    /// 呼吸
+    /// </summary>
+    /// <param name="p_x">X 倍率</param>
+    /// <param name="p_y">Y 倍率</param>
+    void Breath(float p_x, float p_y)
+    {
+        Vector3 temp = new Vector3(Mathf.Cos(counter) * p_x, Mathf.Sin(counter * 2) * p_y, 0);
+        target_weapon_Trans = temp + weapon_Trans.localPosition;
+    }
+
+    /// <summary>
+    /// 呼吸搖擺切換
+    /// </summary>
+    void BreathSwitch()
+    {
+        Vector3 direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+
+        if (direction == Vector3.zero)
+        {
+            Breath(0.02f, 0.02f);
+            counter += Time.deltaTime;
+            weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime);
+        }
+        else if (!isRunning)
+        {
+            Breath(0.05f, 0.05f);
+            counter += Time.deltaTime * 5f;
+            weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 2f);
+        }
+        else
+        {
+            Breath(0.08f, 0.08f);
+            counter += Time.deltaTime * 8f;
+            weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 4f);
+        }
+    }
+
     #endregion
 }

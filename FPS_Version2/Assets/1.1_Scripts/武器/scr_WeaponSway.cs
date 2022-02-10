@@ -17,6 +17,9 @@ public class scr_WeaponSway : MonoBehaviour
         MouseSway();
     }
 
+    /// <summary>
+    /// 滑鼠移動搖擺
+    /// </summary>
     void MouseSway()
     {
         // Detect mouse value
