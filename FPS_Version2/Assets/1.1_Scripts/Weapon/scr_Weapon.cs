@@ -8,6 +8,8 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     [Header("彈孔預置物")] public GameObject bulletHolePrefab;
     [Header("可以射擊的圖層")] public LayerMask canBeShot;
 
+    [HideInInspector] public bool isAim;
+
     int currentWeaponIndex;      // 武器編號
     float currentCoolDown;       // 開槍計時器
 
@@ -16,61 +18,18 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     Transform aim_Trans;         // 瞄準武器座標
 
     GameObject currentWeapon;    // 目前手上的武器
+    scr_PlayerController playerController;
+
+    private void Awake()
+    {
+        playerController = GetComponent<scr_PlayerController>();
+    }
 
     void Update()
     {
         if (!photonView.IsMine) return;
         Onclick();
         CoolDown();
-    }
-
-    /// <summary>
-    /// 按鍵觸發
-    /// </summary>
-    void Onclick()
-    {
-        if (Input.GetKeyDown(KeyCode.Alpha1)) { photonView.RPC("Equip", RpcTarget.All, 0); }
-        if (currentWeapon != null)
-        {
-            Aim(Input.GetMouseButton(1));
-
-            if (Input.GetMouseButton(0) && currentCoolDown <= 0) photonView.RPC("Shoot", RpcTarget.All);
-        }
-    }
-
-    /// <summary>
-    /// 瞄準
-    /// </summary>
-    /// <param name="isAiming">是否瞄準中</param>
-    void Aim(bool isAiming)
-    {
-        // 抓取
-        anchor_Trans = currentWeapon.transform.Find("Anchor");
-        base_Trans = currentWeapon.transform.Find("States/Base");
-        aim_Trans = currentWeapon.transform.Find("States/Aim");
-
-        // 假如瞄準中 換武器座標
-        if (isAiming)
-        {
-            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, aim_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
-            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, aim_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
-        }
-        else
-        {
-            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, base_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
-            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, base_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
-        }
-    }
-
-    /// <summary>
-    /// 槍枝冷卻
-    /// </summary>
-    void CoolDown()
-    {
-        if (currentCoolDown > 0)
-        {
-            currentCoolDown -= Time.deltaTime;
-        }
     }
 
     /// <summary>
@@ -103,16 +62,79 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         RaycastHit hit = new RaycastHit();
         if (Physics.Raycast(spawn.position, spawn.forward, out hit, 1000f, canBeShot))
         {
+            // point : The impact point in world space where the ray hit the collider > 射線的準確點
+            // normal : The normal of the surface the ray hit. > 平面的垂直線
             GameObject bulletHole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
+            bulletHole.transform.SetParent(hit.collider.transform);
             Destroy(bulletHole, 6f);
 
             if (hit.collider.gameObject.layer == 11)
             {
-                // Take damage
+                hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage);
             }
         }
 
         currentCoolDown = weaponDatas[currentWeaponIndex].fireRate;
-
     }
+
+    /// <summary>
+    /// 受傷
+    /// </summary>
+    /// <param name="damage">傷害值</param>
+    [PunRPC]
+    void TakeDamage(int damage)
+    {
+        playerController.TakeDamage(damage);
+    }
+
+    /// <summary>
+    /// 按鍵觸發
+    /// </summary>
+    void Onclick()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1)) { photonView.RPC("Equip", RpcTarget.All, 0); }
+        if (currentWeapon != null)
+        {
+            Aim(Input.GetMouseButton(1));
+
+            if (Input.GetMouseButton(0) && currentCoolDown <= 0) photonView.RPC("Shoot", RpcTarget.All);
+        }
+    }
+
+    /// <summary>
+    /// 瞄準
+    /// </summary>
+    /// <param name="isAiming">是否瞄準中</param>
+    void Aim(bool isAiming)
+    {
+        isAim = isAiming;
+        // 抓取
+        anchor_Trans = currentWeapon.transform.Find("Anchor");
+        base_Trans = currentWeapon.transform.Find("States/Base");
+        aim_Trans = currentWeapon.transform.Find("States/Aim");
+
+        // 假如瞄準中 換武器座標
+        if (isAiming)
+        {
+            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, aim_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, aim_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+        }
+        else
+        {
+            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, base_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, base_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+        }
+    }
+
+    /// <summary>
+    /// 槍枝冷卻
+    /// </summary>
+    void CoolDown()
+    {
+        if (currentCoolDown > 0)
+        {
+            currentCoolDown -= Time.deltaTime;
+        }
+    }
+
 }

@@ -456,7 +456,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3481887543892595432}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: d76bb36161f5a6141abcb10cd16e0d78, type: 2}
   m_IsTrigger: 0
   m_Enabled: 1
   m_Radius: 0.5
@@ -536,6 +536,8 @@ MonoBehaviour:
   runSpeed: 12
   moveSmoothTime: 0.1
   jumpForce: 500
+  maxHealth: 200
+  currentHealth: 0
   cameraHolder: {fileID: 3481887542017875348}
   playerCamera: {fileID: 3481887542296859722}
   weapon_Trans: {fileID: 3481887542172437100}
@@ -560,3 +562,4 @@ MonoBehaviour:
   canBeShot:
     serializedVersion: 2
     m_Bits: 2359
+  isAim: 0

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Photon.Pun;
+using UnityEngine.UI;
 
 public class scr_PlayerController : MonoBehaviourPunCallbacks
 {
@@ -10,6 +11,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("跑步 - 速度")] float runSpeed;
     [SerializeField] [Header("移動滑順時間")] float moveSmoothTime;
     [SerializeField] [Header("跳躍力道")] float jumpForce;
+    [SerializeField] [Header("最大血量")] int maxHealth;
+    [SerializeField] [Header("當前血量")] int currentHealth;
 
     [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
     [SerializeField] [Header("玩家攝影機")] Camera playerCamera;
@@ -29,7 +32,11 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     Vector3 moveDir;                    // 移動到的位置
     Vector3 target_weapon_Trans;        // 武器目標座標
 
+    Image healthBar;
     Rigidbody rig;
+    scr_Weapon scr_weapon;
+    scr_GameManager scr_gameManager;
+
     #endregion
 
     #region -- 方法 --
@@ -37,6 +44,9 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     {
         weapon_Trans = transform.GetChild(2).transform;
         playerCamera = transform.GetChild(1).GetChild(0).GetComponent<Camera>();
+        scr_weapon = GetComponent<scr_Weapon>();
+        scr_gameManager = GameObject.Find("GameManager").GetComponent<scr_GameManager>();
+        healthBar = GameObject.Find("血量顯示器/Health/bar").GetComponent<Image>();
         rig = GetComponent<Rigidbody>();
     }
 
@@ -48,6 +58,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
         walkFOV = playerCamera.fieldOfView;
         runFOV = walkFOV * 1.15f;
+        currentHealth = maxHealth;
     }
 
     void Update()
@@ -60,15 +71,41 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         Jump();
         CursorLock();
         BreathSwitch();
+        UpdateHpBar();
     }
 
     void FixedUpdate()
     {
         rig.MovePosition(rig.position + transform.TransformDirection(moveDir) * Time.deltaTime);
     }
+
+    void OnTriggerEnter(Collider collider)
+    {
+        if (collider.gameObject.name == "地圖外")
+        {
+            Die();
+        }
+    }
     #endregion
 
     #region -- 功能 --
+    /// <summary>
+    /// 受傷
+    /// </summary>
+    /// <param name="damage">傷害值</param>
+    public void TakeDamage(int damage)
+    {
+        if (photonView.IsMine)
+        {
+            currentHealth -= damage;
+
+            if (currentHealth <= 0)
+            {
+                Die();
+            }
+        }
+    }
+
     /// <summary>
     /// 鼠標消失
     /// </summary>
@@ -129,7 +166,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         cameraHolder.transform.localEulerAngles = -Vector3.right * lookRotation;
 
         // 讓武器同步轉角度
-        weapon_Trans.rotation =  cameraHolder.transform.rotation;
+        weapon_Trans.rotation = cameraHolder.transform.rotation;
     }
 
     /// <summary>
@@ -161,7 +198,11 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     {
         Vector3 direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
 
-        if (direction == Vector3.zero)
+        if (scr_weapon.isAim)
+        {
+            Breath(0, 0);
+        }
+        else if (direction == Vector3.zero)
         {
             Breath(0.02f, 0.02f);
             counter += Time.deltaTime;
@@ -179,6 +220,23 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
             counter += Time.deltaTime * 8f;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 4f);
         }
+    }
+
+    /// <summary>
+    /// 死亡
+    /// </summary>
+    void Die()
+    {
+        scr_gameManager.Spawn();
+        PhotonNetwork.Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// 更新血條資訊
+    /// </summary>
+    void UpdateHpBar()
+    {
+        healthBar.fillAmount = (float)currentHealth / maxHealth;
     }
 
     #endregion
