@@ -32,6 +32,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     Vector3 moveDir;                    // 移動到的位置
     Vector3 target_weapon_Trans;        // 武器目標座標
 
+    Text ammo_UI;
     Image healthBar;
     Rigidbody rig;
     scr_Weapon scr_weapon;
@@ -46,7 +47,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         playerCamera = transform.GetChild(1).GetChild(0).GetComponent<Camera>();
         scr_weapon = GetComponent<scr_Weapon>();
         scr_gameManager = GameObject.Find("GameManager").GetComponent<scr_GameManager>();
-        healthBar = GameObject.Find("血量顯示器/Health/bar").GetComponent<Image>();
+        healthBar = GameObject.Find("HUD/血量顯示器/Health/bar").GetComponent<Image>();
+        ammo_UI = GameObject.Find("HUD/子彈/Text").GetComponent<Text>();
         rig = GetComponent<Rigidbody>();
     }
 
@@ -72,6 +74,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         CursorLock();
         BreathSwitch();
         UpdateHpBar();
+        UpdateAmmo();
     }
 
     void FixedUpdate()
@@ -237,6 +240,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     void UpdateHpBar()
     {
         healthBar.fillAmount = (float)currentHealth / maxHealth;
+    }
+
+    /// <summary>
+    /// 更新子彈UI
+    /// </summary>
+    void UpdateAmmo()
+    {
+        ammo_UI.text = scr_weapon.UpdateAmmo();
     }
 
     #endregion

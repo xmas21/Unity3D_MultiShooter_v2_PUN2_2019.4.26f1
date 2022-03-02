@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   name: Pistol
   aimSpeed: 20
-  fireRate: 0.1
+  fireRate: 0.15
+  reload_time: 1.5
   damage: 18
+  ammo: 60
+  clip_size: 6
   weaponPrefab: {fileID: 5397134862033550343, guid: fcbcc2824319f3e4588d684557f057f6,
     type: 3}

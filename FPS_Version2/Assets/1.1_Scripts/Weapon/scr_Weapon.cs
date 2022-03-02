@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
 using Photon.Pun;
+using System.Collections;
 
 public class scr_Weapon : MonoBehaviourPunCallbacks
 {
+    #region - Variables -
     [Header("武器資料")] public scr_WeaponData[] weaponDatas;
     [Header("武器座標")] public Transform weaponPosition;
     [Header("彈孔預置物")] public GameObject bulletHolePrefab;
@@ -12,6 +14,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
     int currentWeaponIndex;      // 武器編號
     float currentCoolDown;       // 開槍計時器
+    bool isReloading;            // 是否換彈中
 
     Transform anchor_Trans;      // 武器座標
     Transform base_Trans;        // 一般武器座標
@@ -19,10 +22,17 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
     GameObject currentWeapon;    // 目前手上的武器
     scr_PlayerController playerController;
+    #endregion
 
-    private void Awake()
+    #region - Monobehavior
+    void Awake()
     {
         playerController = GetComponent<scr_PlayerController>();
+    }
+
+    void Start()
+    {
+        foreach (scr_WeaponData data in weaponDatas) data.Initialize();
     }
 
     void Update()
@@ -31,7 +41,9 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         Onclick();
         CoolDown();
     }
+    #endregion
 
+    #region - RPC -
     /// <summary>
     /// 裝備武器
     /// </summary>
@@ -40,7 +52,11 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Equip(int weapon_ID)
     {
         // 裝備前先清除所有手上槍枝
-        if (currentWeapon != null) Destroy(currentWeapon);
+        if (currentWeapon != null)
+        {
+            if (isReloading) StopCoroutine("Reload");
+            Destroy(currentWeapon);
+        }
 
         currentWeaponIndex = weapon_ID;
 
@@ -86,19 +102,65 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         playerController.TakeDamage(damage);
     }
+    #endregion
+
+    #region - IEnumerator -
+    /// <summary>
+    /// 換子彈
+    /// </summary>
+    /// <returns>延遲時間</returns>
+    IEnumerator Reload(float time)
+    {
+        isReloading = true;
+        currentWeapon.SetActive(false);
+
+        yield return new WaitForSeconds(time);
+        weaponDatas[currentWeaponIndex].Reload();
+
+        currentWeapon.SetActive(true);
+        isReloading = false;
+    }
+    #endregion
+
+    #region - Methods - 
+    /// <summary>
+    /// 更新子彈UI
+    /// </summary>
+    /// <returns>子彈UI</returns>
+    public string UpdateAmmo()
+    {
+        int clip_mount = weaponDatas[currentWeaponIndex].CallClip();
+        int ammo_mount = weaponDatas[currentWeaponIndex].CallAmmo();
+
+        string hud = clip_mount.ToString("02") + " / " + ammo_mount.ToString("02");
+        return hud;
+    }
 
     /// <summary>
     /// 按鍵觸發
     /// </summary>
     void Onclick()
     {
+        // 裝備武器
         if (Input.GetKeyDown(KeyCode.Alpha1)) { photonView.RPC("Equip", RpcTarget.All, 0); }
+
+        // 射擊
         if (currentWeapon != null)
         {
+            // 按右鍵 瞄準
             Aim(Input.GetMouseButton(1));
 
-            if (Input.GetMouseButton(0) && currentCoolDown <= 0) photonView.RPC("Shoot", RpcTarget.All);
+            // 假如 射擊CD <= 0
+            if (Input.GetMouseButton(0) && currentCoolDown <= 0)
+            {
+                if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
+
+                else StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+            }
         }
+
+        // 換子彈
+        if (Input.GetKeyDown(KeyCode.R)) StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
     }
 
     /// <summary>
@@ -136,5 +198,5 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             currentCoolDown -= Time.deltaTime;
         }
     }
-
+    #endregion
 }
