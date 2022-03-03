@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class scr_PlayerController : MonoBehaviourPunCallbacks
 {
-    #region -- 變數 | 欄位 --
+    #region - Variables -
     [SerializeField] [Header("滑鼠水平靈敏度")] float mouseSensitivity_X;
     [SerializeField] [Header("滑鼠垂直靈敏度")] float mouseSensitivity_Y;
     [SerializeField] [Header("走路 - 速度")] float walkSpeed;
@@ -17,6 +17,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
     [SerializeField] [Header("玩家攝影機")] Camera playerCamera;
     [SerializeField] [Header("武器座標")] Transform weapon_Trans;
+    [SerializeField] [Header("發射點座標")] Transform shoot_Trans;
 
     [HideInInspector] public bool isGrounded;
 
@@ -40,10 +41,11 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
     #endregion
 
-    #region -- 方法 --
+    #region - Callbacks -
     void Awake()
     {
         weapon_Trans = transform.GetChild(2).transform;
+        shoot_Trans = transform.GetChild(3).transform;
         playerCamera = transform.GetChild(1).GetChild(0).GetComponent<Camera>();
         scr_weapon = GetComponent<scr_Weapon>();
         scr_gameManager = GameObject.Find("GameManager").GetComponent<scr_GameManager>();
@@ -91,7 +93,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     }
     #endregion
 
-    #region -- 功能 --
+    #region - Methods -
     /// <summary>
     /// 受傷
     /// </summary>
@@ -170,6 +172,9 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
         // 讓武器同步轉角度
         weapon_Trans.rotation = cameraHolder.transform.rotation;
+
+        // 讓子彈同步轉角度
+        shoot_Trans.rotation = cameraHolder.transform.rotation;
     }
 
     /// <summary>

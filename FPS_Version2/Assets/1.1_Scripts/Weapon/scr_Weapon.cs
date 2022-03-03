@@ -14,7 +14,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
     int currentWeaponIndex;      // 武器編號
     float currentCoolDown;       // 開槍計時器
-    bool isReloading;            // 是否換彈中
+    bool isReloading = false;            // 是否換彈中
 
     Transform anchor_Trans;      // 武器座標
     Transform base_Trans;        // 一般武器座標
@@ -38,6 +38,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Update()
     {
         if (!photonView.IsMine) return;
+
         Onclick();
         CoolDown();
     }
@@ -60,7 +61,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
         currentWeaponIndex = weapon_ID;
 
-        GameObject newWeapon = Instantiate(weaponDatas[weapon_ID].weaponPrefab, weaponPosition.position, weaponPosition.rotation, weaponPosition) as GameObject;
+        GameObject newWeapon = PhotonView.Instantiate(weaponDatas[weapon_ID].weaponPrefab, weaponPosition.position, weaponPosition.rotation, weaponPosition) as GameObject;
         newWeapon.transform.localPosition = Vector3.zero;
         newWeapon.transform.localEulerAngles = Vector3.zero;
 
@@ -73,14 +74,15 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     [PunRPC]
     void Shoot()
     {
-        Transform spawn = transform.Find("攝影機座標/玩家攝影機");
+        Transform spawn = transform.Find("Fire_point/Bullet_Point");
 
         RaycastHit hit = new RaycastHit();
+
         if (Physics.Raycast(spawn.position, spawn.forward, out hit, 1000f, canBeShot))
         {
             // point : The impact point in world space where the ray hit the collider > 射線的準確點
             // normal : The normal of the surface the ray hit. > 平面的垂直線
-            GameObject bulletHole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
+            GameObject bulletHole =  Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
             bulletHole.transform.SetParent(hit.collider.transform);
             Destroy(bulletHole, 6f);
 
@@ -132,7 +134,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         int clip_mount = weaponDatas[currentWeaponIndex].CallClip();
         int ammo_mount = weaponDatas[currentWeaponIndex].CallAmmo();
 
-        string hud = clip_mount.ToString("02") + " / " + ammo_mount.ToString("02");
+        string hud = clip_mount.ToString() + " / " + ammo_mount.ToString();
         return hud;
     }
 
@@ -155,7 +157,10 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             {
                 if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
 
-                else StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+                else if (!isReloading)
+                {
+                    StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+                }
             }
         }
 

@@ -19,7 +19,7 @@ MonoBehaviour:
     AppIdVoice: 
     AppVersion: 
     UseNameServer: 1
-    FixedRegion: usw
+    FixedRegion: jp
     Server: 
     Port: 0
     ProxyServer: 
