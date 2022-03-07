@@ -7,9 +7,13 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     #region - Variables -
     [SerializeField] [Header("滑鼠水平靈敏度")] float mouseSensitivity_X;
     [SerializeField] [Header("滑鼠垂直靈敏度")] float mouseSensitivity_Y;
+    [SerializeField] [Header("當前 - 速度")] float currentSpeed;
     [SerializeField] [Header("走路 - 速度")] float walkSpeed;
     [SerializeField] [Header("跑步 - 速度")] float runSpeed;
-    [SerializeField] [Header("移動滑順時間")] float moveSmoothTime;
+    [SerializeField] [Header("滑行 - 速度")] float slideSpeed;
+    [SerializeField] [Header("移動滑順 - 時間")] float moveSmoothTime;
+    [SerializeField] [Header("滑行滑順 - 時間")] float slideSmoothTime;
+    [SerializeField] [Header("可滑行 - 時間")] float slide_time;
     [SerializeField] [Header("跳躍力道")] float jumpForce;
     [SerializeField] [Header("最大血量")] int maxHealth;
     [SerializeField] [Header("當前血量")] int currentHealth;
@@ -22,16 +26,24 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [HideInInspector] public bool isGrounded;
 
     bool cursorLocked = true;           // 滑鼠鎖定
-    bool isRunning = false;
+    public bool isMoving = false;              // 是否在跑步
+    public bool isRunning = false;             // 是否在跑步
+    public bool isSliding = false;             // 是否在滑行
 
     float lookRotation;                 // 上下視角旋轉值
     float walkFOV;                      // 走路視野
     float runFOV;                       // 跑步視野
     float counter;                      // 呼吸武器變數
+    float slideTime;                    // 滑行時間
 
-    Vector3 moveSmoothVelocity;         // 滑順加速度
+    Vector3 moveSmoothVelocity;         // 移動滑順加速度
+    Vector3 slideSmoothVelocity;        // 滑行滑順加速度
+    Vector3 direction;                  // 鍵盤座標量
     Vector3 moveDir;                    // 移動到的位置
+    Vector3 slideDir;                   // 滑行到的位置
     Vector3 target_weapon_Trans;        // 武器目標座標
+    Vector3 camera_origin;
+    Vector3 weapon_origin;
 
     Text ammo_UI;
     Image healthBar;
@@ -41,7 +53,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
     #endregion
 
-    #region - Callbacks -
+    #region - Monobehaviour -
     void Awake()
     {
         weapon_Trans = transform.GetChild(2).transform;
@@ -63,6 +75,9 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         walkFOV = playerCamera.fieldOfView;
         runFOV = walkFOV * 1.15f;
         currentHealth = maxHealth;
+        slideTime = slide_time;
+        camera_origin = cameraHolder.transform.localPosition;
+        //   weapon_origin = weapon_Trans.localPosition;
     }
 
     void Update()
@@ -71,17 +86,19 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         if (!photonView.IsMine) return;
 
         Move();
+        Slide();
         View();
         Jump();
         CursorLock();
         BreathSwitch();
         UpdateHpBar();
         UpdateAmmo();
+        CalculateSpeed();
     }
 
     void FixedUpdate()
     {
-        rig.MovePosition(rig.position + transform.TransformDirection(moveDir) * Time.deltaTime);
+        Movement();
     }
 
     void OnTriggerEnter(Collider collider)
@@ -139,24 +156,6 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// 移動
-    /// </summary>
-    void Move()
-    {
-        Vector3 direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
-
-        // 判斷是否在跑步
-        isRunning = Input.GetKey(KeyCode.LeftShift) & Input.GetKey(KeyCode.W);
-
-        // 跑步中調整 FOV
-        if (isRunning) playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, runFOV, Time.deltaTime * 10f);
-        else playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, walkFOV, Time.deltaTime * 10f); ;
-
-        // 滑順移動
-        moveDir = Vector3.SmoothDamp(moveDir, direction * (isRunning ? runSpeed : walkSpeed), ref moveSmoothVelocity, moveSmoothTime);
-    }
-
-    /// <summary>
     /// 視角
     /// </summary>
     void View()
@@ -175,6 +174,70 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
         // 讓子彈同步轉角度
         shoot_Trans.rotation = cameraHolder.transform.rotation;
+    }
+
+    /// <summary>
+    /// 所有移動
+    /// </summary>
+    void Movement()
+    {
+        // Judge if is sliding 
+        if (!isSliding && isMoving)
+        {
+            cameraHolder.transform.localPosition = camera_origin;
+            rig.MovePosition(rig.position + transform.TransformDirection(moveDir) * Time.deltaTime);
+        }
+        else if (isSliding)
+        {
+            cameraHolder.transform.localPosition = new Vector3(camera_origin.x, camera_origin.y - 0.6f, camera_origin.z);
+            weapon_Trans.localPosition = cameraHolder.transform.localPosition;
+
+            slideDir = Vector3.SmoothDamp(slideDir, direction * slideSpeed, ref slideSmoothVelocity, slideSmoothTime);
+            rig.MovePosition(rig.position + transform.TransformDirection(slideDir) * Time.deltaTime);
+            slideTime -= Time.deltaTime;
+
+            if (slideTime <= 0 && isGrounded)
+            {
+                isSliding = false;
+                weapon_Trans.localPosition = weapon_origin;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 正常移動
+    /// </summary>
+    void Move()
+    {
+        direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
+
+        // 判斷是否移動中
+        isMoving = Input.GetKey(KeyCode.W);
+
+        // 判斷是否在跑步
+        isRunning = Input.GetKey(KeyCode.W) && currentSpeed >= 12;
+
+        // 跑步中調整 FOV
+        if (isRunning) playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, runFOV, Time.deltaTime * 5f);
+        else playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, walkFOV, Time.deltaTime * 5f); ;
+
+        // 滑順移動
+        moveDir = Vector3.SmoothDamp(moveDir, direction * (isRunning ? runSpeed : walkSpeed), ref moveSmoothVelocity, moveSmoothTime);
+    }
+
+    /// <summary>
+    /// 滑行
+    /// </summary>
+    void Slide()
+    {
+        bool slide = Input.GetKey(KeyCode.LeftControl);
+        isSliding = slide && isRunning && (slideTime >= 0 || !isGrounded);
+
+        if (Input.GetKeyUp(KeyCode.LeftControl))
+        {
+            slideTime = slide_time;
+            weapon_Trans.localPosition = weapon_origin;
+        }
     }
 
     /// <summary>
@@ -204,7 +267,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void BreathSwitch()
     {
-        Vector3 direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
 
         if (scr_weapon.isAim)
         {
@@ -216,13 +279,13 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
             counter += Time.deltaTime;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime);
         }
-        else if (!isRunning)
+        else if (isMoving)
         {
             Breath(0.05f, 0.05f);
             counter += Time.deltaTime * 5f;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 2f);
         }
-        else
+        else if (isRunning)
         {
             Breath(0.08f, 0.08f);
             counter += Time.deltaTime * 8f;
@@ -255,5 +318,23 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         ammo_UI.text = scr_weapon.UpdateAmmo();
     }
 
+    /// <summary>
+    /// 計算角色速度
+    /// </summary>
+    void CalculateSpeed()
+    {
+        if (isSliding)
+        {
+            currentSpeed = Mathf.Lerp(currentSpeed, slideSpeed, Time.deltaTime * 20f);
+        }
+        else if (isMoving)
+        {
+            currentSpeed = Mathf.Lerp(currentSpeed, runSpeed, Time.deltaTime * 1.5f);
+        }
+        else
+        {
+            currentSpeed = Mathf.Lerp(currentSpeed, walkSpeed, Time.deltaTime * 5f);
+        }
+    }
     #endregion
 }

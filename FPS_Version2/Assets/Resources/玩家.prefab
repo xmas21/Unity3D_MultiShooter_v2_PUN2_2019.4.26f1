@@ -160,6 +160,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3481887542017875349}
+  - component: {fileID: 499357522607165072}
+  - component: {fileID: 926077317791319361}
   m_Layer: 9
   m_Name: "\u651D\u5F71\u6A5F\u5EA7\u6A19"
   m_TagString: Untagged
@@ -182,6 +184,45 @@ Transform:
   m_Father: {fileID: 3481887543892595348}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &499357522607165072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3481887542017875348}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents:
+  - {fileID: 926077317791319361}
+  sceneViewId: 0
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
+--- !u!114 &926077317791319361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3481887542017875348}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SynchronizePosition: 1
+  m_SynchronizeRotation: 1
+  m_SynchronizeScale: 0
+  m_UseLocal: 1
 --- !u!1 &3481887542172437103
 GameObject:
   m_ObjectHideFlags: 0
@@ -646,9 +687,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mouseSensitivity_X: 4
   mouseSensitivity_Y: 5
+  currentSpeed: 0
   walkSpeed: 8
-  runSpeed: 12
+  runSpeed: 14
+  slideSpeed: 16
   moveSmoothTime: 0.1
+  slideSmoothTime: 0.1
+  slide_time: 0.8
   jumpForce: 500
   maxHealth: 200
   currentHealth: 0
@@ -657,6 +702,9 @@ MonoBehaviour:
   weapon_Trans: {fileID: 3481887542172437100}
   shoot_Trans: {fileID: 0}
   isGrounded: 0
+  isMoving: 0
+  isRunning: 0
+  isSliding: 0
 --- !u!114 &3481887543892595347
 MonoBehaviour:
   m_ObjectHideFlags: 0
