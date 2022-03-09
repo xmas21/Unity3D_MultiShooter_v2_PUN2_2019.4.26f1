@@ -13,10 +13,12 @@ public class scr_WeaponData : ScriptableObject
     [Header("身上子彈數量")] public int ammo;
     [Header("每個彈夾可以射的子彈數量")] public int clip_size;
 
+    [Header("武器模式")] public WeaponMode mode;
+    [Header("是否可以切換模式")] public bool can_change_mode;
     [Header("武器預置物")] public GameObject weaponPrefab;
 
-    private int current_ammo;
-    private int current_clip;
+    [HideInInspector] public int current_ammo;
+    [HideInInspector] public int current_clip;
 
     /// <summary>
     /// 初始化子彈
@@ -53,6 +55,7 @@ public class scr_WeaponData : ScriptableObject
         current_clip = Mathf.Min(clip_size, current_ammo);
         // 身上的子彈 = 所有的 - 槍裡面的
         current_ammo -= current_clip;
+
     }
 
     /// <summary>
@@ -66,4 +69,12 @@ public class scr_WeaponData : ScriptableObject
     /// </summary>
     /// <returns>彈夾數量</returns>
     public int CallClip() { return current_clip; }
+}
+
+/// <summary>
+/// 武器模式
+/// </summary>
+public enum WeaponMode
+{
+    auto, single
 }

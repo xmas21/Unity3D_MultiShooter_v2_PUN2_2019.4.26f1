@@ -20,7 +20,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     Transform base_Trans;        // 一般武器座標
     Transform aim_Trans;         // 瞄準武器座標
 
-    GameObject currentWeapon;    // 目前手上的武器
+   public GameObject currentWeapon;    // 目前手上的武器
     scr_PlayerController playerController;
     #endregion
 
@@ -82,7 +82,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         {
             // point : The impact point in world space where the ray hit the collider > 射線的準確點
             // normal : The normal of the surface the ray hit. > 平面的垂直線
-            GameObject bulletHole =  Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
+            GameObject bulletHole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
             bulletHole.transform.SetParent(hit.collider.transform);
             Destroy(bulletHole, 6f);
 
@@ -131,10 +131,20 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     /// <returns>子彈UI</returns>
     public string UpdateAmmo()
     {
-        int clip_mount = weaponDatas[currentWeaponIndex].CallClip();
-        int ammo_mount = weaponDatas[currentWeaponIndex].CallAmmo();
+        string hud;
 
-        string hud = clip_mount.ToString() + " / " + ammo_mount.ToString();
+        if (currentWeapon == null)
+        {
+            hud = "";
+        }
+        else
+        {
+            int clip_mount = weaponDatas[currentWeaponIndex].CallClip();
+            int ammo_mount = weaponDatas[currentWeaponIndex].CallAmmo();
+
+            hud = clip_mount.ToString() + " / " + ammo_mount.ToString();
+        }
+
         return hud;
     }
 
@@ -145,6 +155,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         // 裝備武器
         if (Input.GetKeyDown(KeyCode.Alpha1)) { photonView.RPC("Equip", RpcTarget.All, 0); }
+        if (Input.GetKeyDown(KeyCode.Alpha2)) { photonView.RPC("Equip", RpcTarget.All, 1); }
 
         // 射擊
         if (currentWeapon != null)
@@ -152,20 +163,37 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             // 按右鍵 瞄準
             Aim(Input.GetMouseButton(1));
 
-            // 假如 射擊CD <= 0
-            if (Input.GetMouseButton(0) && currentCoolDown <= 0)
+            switch (weaponDatas[currentWeaponIndex].mode)
             {
-                if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
+                case WeaponMode.auto:
+                    if (Input.GetMouseButton(0) && currentCoolDown <= 0)
+                    {
+                        if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
 
-                else if (!isReloading)
-                {
-                    StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
-                }
+                        else if (!isReloading)
+                        {
+                            StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+                        }
+                    }
+                    break;
+                case WeaponMode.single:
+                    if (Input.GetMouseButtonDown(0) && currentCoolDown <= 0)
+                    {
+                        if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
+
+                        else if (!isReloading)
+                        {
+                            StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+                        }
+                    }
+                    break;
+                default:
+                    break;
             }
         }
 
         // 換子彈
-        if (Input.GetKeyDown(KeyCode.R)) StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+        if (Input.GetKeyDown(KeyCode.R) && weaponDatas[currentWeaponIndex].current_clip != weaponDatas[currentWeaponIndex].clip_size) StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
     }
 
     /// <summary>

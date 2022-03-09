@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7e05b9d952006a45b5b9c6749be5215, type: 3}
-  m_Name: Pistol
+  m_Name: MachIne Gun
   m_EditorClassIdentifier: 
-  name: Pistol
-  aimSpeed: 15
-  fireRate: 0.2
-  reload_time: 1
-  damage: 18
-  ammo: 120
-  clip_size: 12
-  mode: 1
-  can_change_mode: 0
-  weaponPrefab: {fileID: 5397134862033550343, guid: fcbcc2824319f3e4588d684557f057f6,
+  name: MachIne Gun
+  aimSpeed: 25
+  fireRate: 0.1
+  reload_time: 2
+  damage: 11
+  ammo: 600
+  clip_size: 48
+  mode: 0
+  can_change_mode: 1
+  weaponPrefab: {fileID: 5397134862033550343, guid: e10673e73194f4a49873a6a929b01cdf,
     type: 3}

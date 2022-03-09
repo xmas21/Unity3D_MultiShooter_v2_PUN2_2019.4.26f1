@@ -11,6 +11,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("走路 - 速度")] float walkSpeed;
     [SerializeField] [Header("跑步 - 速度")] float runSpeed;
     [SerializeField] [Header("滑行 - 速度")] float slideSpeed;
+    [SerializeField] [Header("蹲下 - 速度")] float crouchSpeed;
     [SerializeField] [Header("移動滑順 - 時間")] float moveSmoothTime;
     [SerializeField] [Header("滑行滑順 - 時間")] float slideSmoothTime;
     [SerializeField] [Header("可滑行 - 時間")] float slide_time;
@@ -19,6 +20,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("當前血量")] int currentHealth;
 
     [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
+    [SerializeField] [Header("站立 - 碰撞器")] GameObject standCollider;
+    [SerializeField] [Header("蹲下 - 碰撞器")] GameObject crounchCollider;
     [SerializeField] [Header("玩家攝影機")] Camera playerCamera;
     [SerializeField] [Header("武器座標")] Transform weapon_Trans;
     [SerializeField] [Header("發射點座標")] Transform shoot_Trans;
@@ -26,9 +29,10 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [HideInInspector] public bool isGrounded;
 
     bool cursorLocked = true;           // 滑鼠鎖定
-    public bool isMoving = false;              // 是否在跑步
-    public bool isRunning = false;             // 是否在跑步
-    public bool isSliding = false;             // 是否在滑行
+    bool isMoving = false;              // 是否在跑步
+    bool isRunning = false;             // 是否在跑步
+    bool isSliding = false;             // 是否在滑行
+    public bool isCrouching = false;             // 是否在滑行
 
     float lookRotation;                 // 上下視角旋轉值
     float walkFOV;                      // 走路視野
@@ -37,13 +41,12 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     float slideTime;                    // 滑行時間
 
     Vector3 moveSmoothVelocity;         // 移動滑順加速度
-    Vector3 slideSmoothVelocity;        // 滑行滑順加速度
     Vector3 direction;                  // 鍵盤座標量
     Vector3 moveDir;                    // 移動到的位置
-    Vector3 slideDir;                   // 滑行到的位置
     Vector3 target_weapon_Trans;        // 武器目標座標
     Vector3 camera_origin;
     Vector3 weapon_origin;
+    Vector3 shoot_origin;
 
     Text ammo_UI;
     Image healthBar;
@@ -77,7 +80,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         currentHealth = maxHealth;
         slideTime = slide_time;
         camera_origin = cameraHolder.transform.localPosition;
-        //   weapon_origin = weapon_Trans.localPosition;
+        weapon_origin = weapon_Trans.localPosition;
+        shoot_origin = shoot_Trans.localPosition;
     }
 
     void Update()
@@ -87,6 +91,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
         Move();
         Slide();
+        Crounch();
         View();
         Jump();
         CursorLock();
@@ -107,6 +112,34 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         {
             Die();
         }
+    }
+    #endregion
+
+    #region - RPC - 
+    /// <summary>
+    /// 改變座標位置
+    /// </summary>
+    /// <param name="camera_offset">相機位移量</param>
+    /// <param name="time">時間</param>
+    [PunRPC]
+    void ChangePosition(float camera_offset, float time)
+    {
+        Vector3 camera_temp = new Vector3(camera_origin.x, camera_origin.y - camera_offset, camera_origin.z);
+        cameraHolder.transform.localPosition = Vector3.Lerp(cameraHolder.transform.localPosition, camera_temp, Time.deltaTime * time);
+        weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, camera_temp, Time.deltaTime * time);
+        shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, cameraHolder.transform.localPosition, Time.deltaTime * time);
+    }
+
+    /// <summary>
+    /// 座標回歸
+    /// </summary>
+    /// <param name="time">時間</param>
+    [PunRPC]
+    void ResetPosition(float time)
+    {
+        cameraHolder.transform.localPosition = Vector3.Lerp(cameraHolder.transform.localPosition, camera_origin, Time.deltaTime * time);
+        weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, weapon_origin, Time.deltaTime * time);
+        shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, shoot_origin, Time.deltaTime * time);
     }
     #endregion
 
@@ -181,25 +214,29 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void Movement()
     {
-        // Judge if is sliding 
-        if (!isSliding && isMoving)
+        // 一般移動
+        if (isMoving && !isSliding && !isCrouching)
         {
-            cameraHolder.transform.localPosition = camera_origin;
             rig.MovePosition(rig.position + transform.TransformDirection(moveDir) * Time.deltaTime);
         }
+
+        // 蹲下狀態
+        else if (isCrouching)
+        {
+            rig.MovePosition(rig.position + transform.TransformDirection(moveDir) * Time.deltaTime);
+        }
+
+        // 滑行狀態
         else if (isSliding)
         {
-            cameraHolder.transform.localPosition = new Vector3(camera_origin.x, camera_origin.y - 0.6f, camera_origin.z);
-            weapon_Trans.localPosition = cameraHolder.transform.localPosition;
+            // 移動
+            rig.MovePosition(rig.position + transform.TransformDirection(moveDir) * Time.deltaTime);
 
-            slideDir = Vector3.SmoothDamp(slideDir, direction * slideSpeed, ref slideSmoothVelocity, slideSmoothTime);
-            rig.MovePosition(rig.position + transform.TransformDirection(slideDir) * Time.deltaTime);
             slideTime -= Time.deltaTime;
 
             if (slideTime <= 0 && isGrounded)
             {
                 isSliding = false;
-                weapon_Trans.localPosition = weapon_origin;
             }
         }
     }
@@ -209,20 +246,21 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void Move()
     {
+        // 偵測鍵盤
         direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
 
         // 判斷是否移動中
-        isMoving = Input.GetKey(KeyCode.W);
+        isMoving = direction != Vector3.zero;
 
         // 判斷是否在跑步
-        isRunning = Input.GetKey(KeyCode.W) && currentSpeed >= 12;
+        isRunning = Input.GetKey(KeyCode.W) && currentSpeed > 10;
 
         // 跑步中調整 FOV
         if (isRunning) playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, runFOV, Time.deltaTime * 5f);
         else playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, walkFOV, Time.deltaTime * 5f); ;
 
         // 滑順移動
-        moveDir = Vector3.SmoothDamp(moveDir, direction * (isRunning ? runSpeed : walkSpeed), ref moveSmoothVelocity, moveSmoothTime);
+        moveDir = Vector3.SmoothDamp(moveDir, direction * currentSpeed, ref moveSmoothVelocity, moveSmoothTime);
     }
 
     /// <summary>
@@ -230,19 +268,46 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void Slide()
     {
-        bool slide = Input.GetKey(KeyCode.LeftControl);
+        bool slide = Input.GetKey(KeyCode.LeftShift);
         isSliding = slide && isRunning && (slideTime >= 0 || !isGrounded);
 
-        if (Input.GetKeyUp(KeyCode.LeftControl))
+        if (isSliding)
+        {
+            photonView.RPC("ChangePosition", RpcTarget.All, 1.2f, 8f);
+        }
+        else
+        {
+            photonView.RPC("ResetPosition", RpcTarget.All, 8f);
+        }
+
+        if (Input.GetKeyUp(KeyCode.LeftShift))
         {
             slideTime = slide_time;
-            weapon_Trans.localPosition = weapon_origin;
+            photonView.RPC("ResetPosition", RpcTarget.All, 8f);
+        }
+    }
+
+    /// <summary>
+    /// 蹲下
+    /// </summary>
+    void Crounch()
+    {
+        bool crouch = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        isCrouching = crouch && !isRunning && isGrounded;
+
+        if (isCrouching)
+        {
+            photonView.RPC("ChangePosition", RpcTarget.All, 0.8f, 8f);
+        }
+        else
+        {
+            photonView.RPC("ResetPosition", RpcTarget.All, 8f);
         }
     }
 
     /// <summary>
     /// 跳躍
-    /// </summary>
+    /// </summary>0
     void Jump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
@@ -271,25 +336,33 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
         if (scr_weapon.isAim)
         {
-            Breath(0, 0);
-        }
-        else if (direction == Vector3.zero)
-        {
-            Breath(0.02f, 0.02f);
+            Breath(0.01f, 0.01f);
             counter += Time.deltaTime;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime);
         }
-        else if (isMoving)
+        else if (isCrouching || isSliding)
+        {
+            Breath(0.03f, 0.03f);
+            counter += Time.deltaTime;
+            weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 2f);
+        }
+        else if (direction == Vector3.zero)
         {
             Breath(0.05f, 0.05f);
-            counter += Time.deltaTime * 5f;
+            counter += Time.deltaTime;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 2f);
         }
         else if (isRunning)
         {
-            Breath(0.08f, 0.08f);
+            Breath(0.1f, 0.1f);
             counter += Time.deltaTime * 8f;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 4f);
+        }
+        else if (isMoving)
+        {
+            Breath(0.07f, 0.07f);
+            counter += Time.deltaTime * 6f;
+            weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime * 3f);
         }
     }
 
@@ -326,6 +399,10 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         if (isSliding)
         {
             currentSpeed = Mathf.Lerp(currentSpeed, slideSpeed, Time.deltaTime * 20f);
+        }
+        else if (isCrouching)
+        {
+            currentSpeed = Mathf.Lerp(currentSpeed, crouchSpeed, Time.deltaTime * 20f);
         }
         else if (isMoving)
         {
