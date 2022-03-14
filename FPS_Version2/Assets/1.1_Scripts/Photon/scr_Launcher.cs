@@ -28,7 +28,6 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     public override void OnConnectedToMaster()
     {
         Debug.Log("Connected to Master");
-        Join();
 
         base.OnConnectedToMaster();
     }
@@ -40,7 +39,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         StartGame();
 
-        base.OnJoinedRoom();    
+        base.OnJoinedRoom();
     }
 
     /// <summary>

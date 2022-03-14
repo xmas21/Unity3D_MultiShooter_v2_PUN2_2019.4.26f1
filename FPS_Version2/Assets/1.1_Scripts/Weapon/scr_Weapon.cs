@@ -12,16 +12,19 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
     [HideInInspector] public bool isAim;
 
-    int currentWeaponIndex;      // 武器編號
-    float currentCoolDown;       // 開槍計時器
+    int currentWeaponIndex;              // 武器編號
+    float currentCoolDown;               // 開槍計時器
     bool isReloading = false;            // 是否換彈中
 
-    Transform anchor_Trans;      // 武器座標
-    Transform base_Trans;        // 一般武器座標
-    Transform aim_Trans;         // 瞄準武器座標
+    Transform anchor_Trans;              // 武器座標
+    Transform base_Trans;                // 一般武器座標
+    Transform aim_Trans;                 // 瞄準武器座標
 
-   public GameObject currentWeapon;    // 目前手上的武器
+    GameObject currentWeapon;            // 目前手上的武器
     scr_PlayerController playerController;
+
+    WeaponMode weaponMode;
+
     #endregion
 
     #region - Monobehavior
@@ -64,6 +67,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         GameObject newWeapon = PhotonView.Instantiate(weaponDatas[weapon_ID].weaponPrefab, weaponPosition.position, weaponPosition.rotation, weaponPosition) as GameObject;
         newWeapon.transform.localPosition = Vector3.zero;
         newWeapon.transform.localEulerAngles = Vector3.zero;
+        weaponMode = weaponDatas[currentWeaponIndex].mode;
 
         currentWeapon = newWeapon;
     }
@@ -163,7 +167,11 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             // 按右鍵 瞄準
             Aim(Input.GetMouseButton(1));
 
-            switch (weaponDatas[currentWeaponIndex].mode)
+            // 切換武器模式
+            if (Input.GetKeyDown(KeyCode.B)) ChangeMode();
+
+            // 射擊
+            switch (weaponMode)
             {
                 case WeaponMode.auto:
                     if (Input.GetMouseButton(0) && currentCoolDown <= 0)
@@ -229,6 +237,28 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         if (currentCoolDown > 0)
         {
             currentCoolDown -= Time.deltaTime;
+        }
+    }
+
+    /// <summary>
+    /// 切換武器模式
+    /// </summary>
+    void ChangeMode()
+    {
+        if (weaponDatas[currentWeaponIndex].can_change_mode)
+        {
+            if (weaponMode == WeaponMode.auto)
+            {
+                weaponMode = WeaponMode.single;
+            }
+            else
+            {
+                weaponMode = WeaponMode.auto;
+            }
+        }
+        else
+        {
+            return;
         }
     }
     #endregion

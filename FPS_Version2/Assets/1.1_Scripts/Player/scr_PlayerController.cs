@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using Photon.Pun;
+﻿using Photon.Pun;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class scr_PlayerController : MonoBehaviourPunCallbacks
@@ -32,7 +32,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     bool isMoving = false;              // 是否在跑步
     bool isRunning = false;             // 是否在跑步
     bool isSliding = false;             // 是否在滑行
-    public bool isCrouching = false;             // 是否在滑行
+    public bool isCrouching = false;    // 是否在滑行
 
     float lookRotation;                 // 上下視角旋轉值
     float walkFOV;                      // 走路視野
@@ -140,14 +140,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         cameraHolder.transform.localPosition = Vector3.Lerp(cameraHolder.transform.localPosition, camera_origin, Time.deltaTime * time);
         weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, weapon_origin, Time.deltaTime * time);
         shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, shoot_origin, Time.deltaTime * time);
-    }
+    } 
     #endregion
 
     #region - Methods -
     /// <summary>
     /// 受傷
     /// </summary>
-    /// <param name="damage">傷害值</param>
+    /// <param name="damage">傷害值</param>s
     public void TakeDamage(int damage)
     {
         if (photonView.IsMine)
@@ -298,10 +298,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         if (isCrouching)
         {
             photonView.RPC("ChangePosition", RpcTarget.All, 0.8f, 8f);
+            standCollider.SetActive(false);
+            crounchCollider.SetActive(true);
         }
         else
         {
             photonView.RPC("ResetPosition", RpcTarget.All, 8f);
+            standCollider.SetActive(true);
+            crounchCollider.SetActive(false);
         }
     }
 
