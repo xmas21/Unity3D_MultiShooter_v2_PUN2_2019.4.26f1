@@ -15,7 +15,7 @@ MonoBehaviour:
   name: MachIne Gun
   aimSpeed: 25
   fireRate: 0.1
-  reload_time: 2
+  reload_time: 2.3
   damage: 11
   ammo: 600
   clip_size: 48
@@ -23,3 +23,5 @@ MonoBehaviour:
   can_change_mode: 1
   weaponPrefab: {fileID: 5397134862033550343, guid: e10673e73194f4a49873a6a929b01cdf,
     type: 3}
+  current_ammo: 226
+  current_clip: 48

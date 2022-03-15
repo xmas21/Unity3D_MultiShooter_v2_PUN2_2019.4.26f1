@@ -6,11 +6,14 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     #region - Variable -
     string gameVersion = "0.0.0";
 
+    scr_MenuManager menu;
     #endregion
 
     #region - MonoBehaviour -
     void Awake()
     {
+        menu = GameObject.Find("Launcher").GetComponent<scr_MenuManager>();
+
         // 確保所有連線的玩家均載入相同的遊戲場景
         PhotonNetwork.AutomaticallySyncScene = true;
     }
@@ -28,6 +31,10 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     public override void OnConnectedToMaster()
     {
         Debug.Log("Connected to Master");
+
+        menu.create_match_btn.interactable = true;
+        menu.join_match_btn.interactable = true;
+        menu.quit_btn.interactable = true;
 
         base.OnConnectedToMaster();
     }

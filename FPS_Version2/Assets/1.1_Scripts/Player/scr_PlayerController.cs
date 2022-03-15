@@ -140,7 +140,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         cameraHolder.transform.localPosition = Vector3.Lerp(cameraHolder.transform.localPosition, camera_origin, Time.deltaTime * time);
         weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, weapon_origin, Time.deltaTime * time);
         shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, shoot_origin, Time.deltaTime * time);
-    } 
+    }
     #endregion
 
     #region - Methods -
@@ -298,14 +298,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         if (isCrouching)
         {
             photonView.RPC("ChangePosition", RpcTarget.All, 0.8f, 8f);
-            standCollider.SetActive(false);
-            crounchCollider.SetActive(true);
+            //standCollider.SetActive(false);
+            //  crounchCollider.SetActive(true);
         }
         else
         {
             photonView.RPC("ResetPosition", RpcTarget.All, 8f);
-            standCollider.SetActive(true);
-            crounchCollider.SetActive(false);
+            //  standCollider.SetActive(true);
+            //  crounchCollider.SetActive(false);
         }
     }
 

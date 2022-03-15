@@ -4,9 +4,9 @@ using UnityEngine.UI;
 public class scr_MenuManager : MonoBehaviour
 {
     #region - Variables - 
-    Button join_match_btn;
-    Button create_match_btn;
-    Button quit_btn;
+    public Button join_match_btn;
+    public Button create_match_btn;
+    public Button quit_btn;
     AudioSource aud;
 
     scr_Launcher launcher;

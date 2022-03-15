@@ -118,7 +118,15 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     IEnumerator Reload(float time)
     {
         isReloading = true;
-        currentWeapon.SetActive(false);
+
+        if (currentWeapon.GetComponent<Animator>())
+        {
+            currentWeapon.GetComponent<Animator>().SetTrigger("換彈");
+        }
+        else
+        {
+            currentWeapon.SetActive(false);
+        }
 
         yield return new WaitForSeconds(time);
         weaponDatas[currentWeaponIndex].Reload();
@@ -174,25 +182,15 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             switch (weaponMode)
             {
                 case WeaponMode.auto:
-                    if (Input.GetMouseButton(0) && currentCoolDown <= 0)
+                    if (Input.GetMouseButton(0) && currentCoolDown <= 0 )
                     {
-                        if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
-
-                        else if (!isReloading)
-                        {
-                            StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
-                        }
+                        if (weaponDatas[currentWeaponIndex].FireBullet() && !isReloading) photonView.RPC("Shoot", RpcTarget.All);
                     }
                     break;
                 case WeaponMode.single:
                     if (Input.GetMouseButtonDown(0) && currentCoolDown <= 0)
                     {
                         if (weaponDatas[currentWeaponIndex].FireBullet()) photonView.RPC("Shoot", RpcTarget.All);
-
-                        else if (!isReloading)
-                        {
-                            StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
-                        }
                     }
                     break;
                 default:
@@ -211,6 +209,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Aim(bool isAiming)
     {
         isAim = isAiming;
+
         // 抓取
         anchor_Trans = currentWeapon.transform.Find("Anchor");
         base_Trans = currentWeapon.transform.Find("States/Base");
