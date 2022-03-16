@@ -16,6 +16,8 @@ public class scr_WeaponSway : MonoBehaviourPunCallbacks
     void Update()
     {
         if (!photonView.IsMine) return;
+        if (scr_SceneManager.paused) return;
+
         MouseSway();
     }
 

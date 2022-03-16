@@ -800,9 +800,10 @@ MonoBehaviour:
   mouseSensitivity_Y: 5
   currentSpeed: 6
   walkSpeed: 8
-  runSpeed: 12
-  slideSpeed: 16
+  runSpeed: 13
+  slideSpeed: 17
   crouchSpeed: 6
+  aimSpeed: 5
   moveSmoothTime: 0.1
   slideSmoothTime: 0.1
   slide_time: 0.8
@@ -812,11 +813,10 @@ MonoBehaviour:
   cameraHolder: {fileID: 3481887542017875348}
   standCollider: {fileID: 8510160766981906616}
   crounchCollider: {fileID: 493445549777554119}
-  playerCamera: {fileID: 3481887542296859722}
   weapon_Trans: {fileID: 3481887542172437100}
   shoot_Trans: {fileID: 5484089177226372752}
+  playerCamera: {fileID: 3481887542296859722}
   isGrounded: 0
-  isCrouching: 0
 --- !u!114 &3481887543892595347
 MonoBehaviour:
   m_ObjectHideFlags: 0

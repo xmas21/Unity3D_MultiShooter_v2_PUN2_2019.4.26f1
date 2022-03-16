@@ -24,13 +24,13 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     scr_PlayerController playerController;
 
     WeaponMode weaponMode;
-
     #endregion
 
     #region - Monobehavior
     void Awake()
     {
         playerController = GetComponent<scr_PlayerController>();
+        currentWeaponIndex = -1;
     }
 
     void Start()
@@ -40,7 +40,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
     void Update()
     {
-        if (!photonView.IsMine) return;
+        if (scr_SceneManager.paused && !photonView.IsMine) return;
 
         Onclick();
         CoolDown();
@@ -56,10 +56,14 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Equip(int weapon_ID)
     {
         // 裝備前先清除所有手上槍枝
-        if (currentWeapon != null)
+        if (currentWeapon != null && currentWeaponIndex != weapon_ID)
         {
             if (isReloading) StopCoroutine("Reload");
             Destroy(currentWeapon);
+        }
+        else if (currentWeaponIndex == weapon_ID)
+        {
+            return;
         }
 
         currentWeaponIndex = weapon_ID;
@@ -68,6 +72,8 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         newWeapon.transform.localPosition = Vector3.zero;
         newWeapon.transform.localEulerAngles = Vector3.zero;
         weaponMode = weaponDatas[currentWeaponIndex].mode;
+
+        newWeapon.GetComponent<Animator>().SetTrigger("裝備");
 
         currentWeapon = newWeapon;
     }
@@ -108,6 +114,12 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         playerController.TakeDamage(damage);
     }
+
+    [PunRPC]
+    void Reload_RPC()
+    {
+        StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+    }
     #endregion
 
     #region - IEnumerator -
@@ -119,19 +131,11 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         isReloading = true;
 
-        if (currentWeapon.GetComponent<Animator>())
-        {
-            currentWeapon.GetComponent<Animator>().SetTrigger("換彈");
-        }
-        else
-        {
-            currentWeapon.SetActive(false);
-        }
-
+        Aim(false);
+        currentWeapon.GetComponent<Animator>().SetTrigger("換彈");
         yield return new WaitForSeconds(time);
         weaponDatas[currentWeaponIndex].Reload();
 
-        currentWeapon.SetActive(true);
         isReloading = false;
     }
     #endregion
@@ -182,7 +186,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             switch (weaponMode)
             {
                 case WeaponMode.auto:
-                    if (Input.GetMouseButton(0) && currentCoolDown <= 0 )
+                    if (Input.GetMouseButton(0) && currentCoolDown <= 0)
                     {
                         if (weaponDatas[currentWeaponIndex].FireBullet() && !isReloading) photonView.RPC("Shoot", RpcTarget.All);
                     }
@@ -199,7 +203,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         }
 
         // 換子彈
-        if (Input.GetKeyDown(KeyCode.R) && weaponDatas[currentWeaponIndex].current_clip != weaponDatas[currentWeaponIndex].clip_size) StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+        if (Input.GetKeyDown(KeyCode.R) && weaponDatas[currentWeaponIndex].current_clip != weaponDatas[currentWeaponIndex].clip_size) photonView.RPC("Reload_RPC", RpcTarget.All);
     }
 
     /// <summary>
@@ -208,23 +212,33 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     /// <param name="isAiming">是否瞄準中</param>
     void Aim(bool isAiming)
     {
-        isAim = isAiming;
-
-        // 抓取
-        anchor_Trans = currentWeapon.transform.Find("Anchor");
-        base_Trans = currentWeapon.transform.Find("States/Base");
-        aim_Trans = currentWeapon.transform.Find("States/Aim");
-
-        // 假如瞄準中 換武器座標
-        if (isAiming)
+        if (isReloading)
         {
-            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, aim_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
-            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, aim_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, base_Trans.position, Time.deltaTime * 100f);
+            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, base_Trans.rotation, Time.deltaTime * 100f);
         }
         else
         {
-            anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, base_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
-            anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, base_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+            isAim = isAiming;
+
+            // 抓取
+            anchor_Trans = currentWeapon.transform.Find("Anchor");
+            base_Trans = currentWeapon.transform.Find("States/Base");
+            aim_Trans = currentWeapon.transform.Find("States/Aim");
+
+            // 假如瞄準中 換武器座標
+            if (isAiming)
+            {
+                playerController.playerCamera.fieldOfView = Mathf.Lerp(playerController.playerCamera.fieldOfView, 50, Time.deltaTime * 10f);
+                anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, aim_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+                anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, aim_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+            }
+            else
+            {
+                playerController.playerCamera.fieldOfView = Mathf.Lerp(playerController.playerCamera.fieldOfView, 60, Time.deltaTime * 10f);
+                anchor_Trans.position = Vector3.Lerp(anchor_Trans.position, base_Trans.position, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+                anchor_Trans.rotation = Quaternion.Lerp(anchor_Trans.rotation, base_Trans.rotation, Time.deltaTime * weaponDatas[currentWeaponIndex].aimSpeed);
+            }
         }
     }
 

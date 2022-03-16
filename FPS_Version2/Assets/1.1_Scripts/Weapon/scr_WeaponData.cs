@@ -13,8 +13,8 @@ public class scr_WeaponData : ScriptableObject
     [Header("身上子彈數量")] public int ammo;
     [Header("每個彈夾可以射的子彈數量")] public int clip_size;
 
-    [Header("武器模式")] public WeaponMode mode;
     [Header("是否可以切換模式")] public bool can_change_mode;
+    [Header("武器模式")] public WeaponMode mode;
     [Header("武器預置物")] public GameObject weaponPrefab;
 
     [HideInInspector] public int current_ammo;

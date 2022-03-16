@@ -60,7 +60,6 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
 
         base.OnJoinRandomFailed(returnCode, message);
     }
-
     #endregion
 
     #region - Method -

@@ -12,27 +12,29 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("跑步 - 速度")] float runSpeed;
     [SerializeField] [Header("滑行 - 速度")] float slideSpeed;
     [SerializeField] [Header("蹲下 - 速度")] float crouchSpeed;
+    [SerializeField] [Header("瞄準 - 速度")] float aimSpeed;
     [SerializeField] [Header("移動滑順 - 時間")] float moveSmoothTime;
     [SerializeField] [Header("滑行滑順 - 時間")] float slideSmoothTime;
     [SerializeField] [Header("可滑行 - 時間")] float slide_time;
     [SerializeField] [Header("跳躍力道")] float jumpForce;
     [SerializeField] [Header("最大血量")] int maxHealth;
     [SerializeField] [Header("當前血量")] int currentHealth;
-
     [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
     [SerializeField] [Header("站立 - 碰撞器")] GameObject standCollider;
     [SerializeField] [Header("蹲下 - 碰撞器")] GameObject crounchCollider;
-    [SerializeField] [Header("玩家攝影機")] Camera playerCamera;
     [SerializeField] [Header("武器座標")] Transform weapon_Trans;
     [SerializeField] [Header("發射點座標")] Transform shoot_Trans;
 
+    [Header("玩家攝影機")] public Camera playerCamera;
+
     [HideInInspector] public bool isGrounded;
 
-    bool cursorLocked = true;           // 滑鼠鎖定
+    //   bool cursorLocked = true;           // 滑鼠鎖定
     bool isMoving = false;              // 是否在跑步
     bool isRunning = false;             // 是否在跑步
     bool isSliding = false;             // 是否在滑行
-    public bool isCrouching = false;    // 是否在滑行
+    bool isCrouching = false;           // 是否在滑行
+    bool paused = false;
 
     float lookRotation;                 // 上下視角旋轉值
     float walkFOV;                      // 走路視野
@@ -53,7 +55,6 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     Rigidbody rig;
     scr_Weapon scr_weapon;
     scr_GameManager scr_gameManager;
-
     #endregion
 
     #region - Monobehaviour -
@@ -88,16 +89,19 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     {
         // 只控制自己生成的物件
         if (!photonView.IsMine) return;
+        Pause();
+
+        if (scr_SceneManager.paused) return;
+        Cursor.lockState = CursorLockMode.Locked;
 
         Move();
         Slide();
         Crounch();
         View();
         Jump();
-        CursorLock();
-        BreathSwitch();
         UpdateHpBar();
         UpdateAmmo();
+        BreathSwitch();
         CalculateSpeed();
     }
 
@@ -161,32 +165,32 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 鼠標消失
-    /// </summary>
-    void CursorLock()
-    {
-        if (cursorLocked)
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+    ///// <summary>
+    ///// 鼠標消失
+    ///// </summary>
+    //void CursorLock()
+    //{
+    //    //if (cursorLocked)
+    //    //{
+    //    Cursor.lockState = CursorLockMode.Locked;
+    //    //    Cursor.visible = false;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                cursorLocked = false;
-            }
-        }
-        else
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+    //    //    if (Input.GetKeyDown(KeyCode.Escape))
+    //    //    {
+    //    //        cursorLocked = false;
+    //    //    }
+    //    //}
+    //    //else
+    //    //{
+    //    //    Cursor.lockState = CursorLockMode.None;
+    //    //    Cursor.visible = true;
 
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                cursorLocked = true;
-            }
-        }
-    }
+    //    //    if (Input.GetKeyDown(KeyCode.Escape))
+    //    //    {
+    //    //        cursorLocked = true;
+    //    //    }
+    //    //}
+    //}
 
     /// <summary>
     /// 視角
@@ -246,14 +250,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void Move()
     {
-        // 偵測鍵盤
+        // 偵測鍵盤 H : AD | V : WS
         direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
 
         // 判斷是否移動中
         isMoving = direction != Vector3.zero;
 
         // 判斷是否在跑步
-        isRunning = Input.GetKey(KeyCode.W) && currentSpeed > 10;
+        isRunning = Input.GetKey(KeyCode.W) && currentSpeed > 10.5f && !scr_weapon.isAim;
 
         // 跑步中調整 FOV
         if (isRunning) playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, runFOV, Time.deltaTime * 5f);
@@ -400,21 +404,55 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void CalculateSpeed()
     {
-        if (isSliding)
+        // 瞄準 : 速度最慢
+        if (scr_weapon.isAim)
+        {
+            currentSpeed = Mathf.Lerp(currentSpeed, aimSpeed, Time.deltaTime * 30f);
+        }
+        // 滑行 : 速度最快
+        else if (isSliding)
         {
             currentSpeed = Mathf.Lerp(currentSpeed, slideSpeed, Time.deltaTime * 20f);
         }
+        // 蹲下 : 速度第二慢
         else if (isCrouching)
         {
             currentSpeed = Mathf.Lerp(currentSpeed, crouchSpeed, Time.deltaTime * 20f);
         }
+        // 移動 : 速度漸快
         else if (isMoving)
         {
-            currentSpeed = Mathf.Lerp(currentSpeed, runSpeed, Time.deltaTime * 1.5f);
+            if (direction.x == 0 && direction.z >= 0)
+            {
+                currentSpeed = Mathf.Lerp(currentSpeed, runSpeed, Time.deltaTime * 1.5f);
+            }
+            else if (direction.x != 0 && direction.z >= 0)
+            {
+                currentSpeed = Mathf.Lerp(currentSpeed, runSpeed - 1.5f, Time.deltaTime * 1.5f);
+            }
+            else if (direction.z < 0)
+            {
+                currentSpeed = Mathf.Lerp(currentSpeed, walkSpeed, Time.deltaTime * 1.5f);
+            }
         }
+        // 回歸初始速度
         else
         {
             currentSpeed = Mathf.Lerp(currentSpeed, walkSpeed, Time.deltaTime * 5f);
+        }
+    }
+
+    /// <summary>
+    /// 暫停
+    /// </summary>
+    void Pause()
+    {
+        paused = Input.GetKeyDown(KeyCode.Escape);
+
+        if (paused)
+        {
+            GameObject.Find("畫布").GetComponent<scr_SceneManager>().Pause();
+            moveDir = Vector3.zero;
         }
     }
     #endregion

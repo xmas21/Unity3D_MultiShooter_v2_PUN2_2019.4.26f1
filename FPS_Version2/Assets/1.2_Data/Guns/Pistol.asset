@@ -15,7 +15,7 @@ MonoBehaviour:
   name: Pistol
   aimSpeed: 15
   fireRate: 0.2
-  reload_time: 1
+  reload_time: 1.2
   damage: 18
   ammo: 120
   clip_size: 12
@@ -23,3 +23,5 @@ MonoBehaviour:
   can_change_mode: 0
   weaponPrefab: {fileID: 5397134862033550343, guid: fcbcc2824319f3e4588d684557f057f6,
     type: 3}
+  current_ammo: 117
+  current_clip: 12
