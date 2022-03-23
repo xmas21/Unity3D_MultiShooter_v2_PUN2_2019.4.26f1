@@ -86,9 +86,17 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         Transform spawn = transform.Find("Fire_point/Bullet_Point");
 
-        RaycastHit hit = new RaycastHit();
+        // bloom
+        Vector3 v_bloom = spawn.position + spawn.forward * 1000f;
+        v_bloom += Random.Range(-weaponDatas[currentWeaponIndex].bloom, weaponDatas[currentWeaponIndex].bloom) * spawn.up * 2;
+        v_bloom += Random.Range(-weaponDatas[currentWeaponIndex].bloom, weaponDatas[currentWeaponIndex].bloom) * spawn.right * 0.8f;
+        v_bloom -= spawn.position;
+        v_bloom.Normalize();
 
-        if (Physics.Raycast(spawn.position, spawn.forward, out hit, 1000f, canBeShot))
+
+        // Raycast
+        RaycastHit hit = new RaycastHit();
+        if (Physics.Raycast(spawn.position, v_bloom, out hit, 1000f, canBeShot))
         {
             // point : The impact point in world space where the ray hit the collider > 射線的準確點
             // normal : The normal of the surface the ray hit. > 平面的垂直線

@@ -16,12 +16,13 @@ MonoBehaviour:
   aimSpeed: 15
   fireRate: 0.2
   reload_time: 1.2
+  bloom: 10
   damage: 18
   ammo: 120
   clip_size: 12
-  mode: 1
   can_change_mode: 0
+  mode: 1
   weaponPrefab: {fileID: 5397134862033550343, guid: fcbcc2824319f3e4588d684557f057f6,
     type: 3}
-  current_ammo: 117
+  current_ammo: 120
   current_clip: 12

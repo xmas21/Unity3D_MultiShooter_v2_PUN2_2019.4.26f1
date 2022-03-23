@@ -348,6 +348,10 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
             counter += Time.deltaTime;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime);
         }
+        else if (true)
+        {
+
+        }
         else if (isCrouching || isSliding)
         {
             Breath(0.03f, 0.03f);

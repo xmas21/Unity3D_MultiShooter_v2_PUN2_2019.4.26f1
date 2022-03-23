@@ -8,6 +8,7 @@ public class scr_WeaponData : ScriptableObject
     [Header("瞄準速度")] public float aimSpeed;
     [Header("開槍頻率")] public float fireRate;
     [Header("換彈時間")] public float reload_time;
+    [Header("後座力")] public float bloom;
 
     [Header("武器傷害")] public int damage;
     [Header("身上子彈數量")] public int ammo;
