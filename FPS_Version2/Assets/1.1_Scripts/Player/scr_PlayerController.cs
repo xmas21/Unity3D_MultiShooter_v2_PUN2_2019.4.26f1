@@ -19,17 +19,18 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("跳躍力道")] float jumpForce;
     [SerializeField] [Header("最大血量")] int maxHealth;
     [SerializeField] [Header("當前血量")] int currentHealth;
-    [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
+
     [SerializeField] [Header("站立 - 碰撞器")] GameObject standCollider;
     [SerializeField] [Header("蹲下 - 碰撞器")] GameObject crounchCollider;
+
     [SerializeField] [Header("武器座標")] Transform weapon_Trans;
     [SerializeField] [Header("發射點座標")] Transform shoot_Trans;
 
+     [Header("攝影機座標")] public GameObject cameraHolder;
     [Header("玩家攝影機")] public Camera playerCamera;
 
     [HideInInspector] public bool isGrounded;
 
-    //   bool cursorLocked = true;           // 滑鼠鎖定
     bool isMoving = false;              // 是否在跑步
     bool isRunning = false;             // 是否在跑步
     bool isSliding = false;             // 是否在滑行

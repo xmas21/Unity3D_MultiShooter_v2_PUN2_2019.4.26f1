@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7e05b9d952006a45b5b9c6749be5215, type: 3}
+  m_Name: ShotGun
+  m_EditorClassIdentifier: 
+  name: ShotGun
+  aimSpeed: 25
+  fireRate: 0.8
+  reload_time: 2
+  bloom: 40
+  damage: 11
+  ammo: 64
+  clip_size: 4
+  pellets: 12
+  recovery: 1
+  can_change_mode: 0
+  mode: 1
+  weaponPrefab: {fileID: 5397134862033550343, guid: 4673cafe1d64eb346b4817ed79d1cb5c,
+    type: 3}
+  current_ammo: 46
+  current_clip: 1

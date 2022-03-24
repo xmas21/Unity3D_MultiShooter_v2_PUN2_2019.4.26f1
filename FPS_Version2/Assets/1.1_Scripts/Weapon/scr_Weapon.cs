@@ -86,31 +86,36 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         Transform spawn = transform.Find("Fire_point/Bullet_Point");
 
-        // bloom
-        Vector3 v_bloom = spawn.position + spawn.forward * 1000f;
-        v_bloom += Random.Range(-weaponDatas[currentWeaponIndex].bloom, weaponDatas[currentWeaponIndex].bloom) * spawn.up * 2;
-        v_bloom += Random.Range(-weaponDatas[currentWeaponIndex].bloom, weaponDatas[currentWeaponIndex].bloom) * spawn.right * 0.8f;
-        v_bloom -= spawn.position;
-        v_bloom.Normalize();
+        // cooldown
+        currentCoolDown = weaponDatas[currentWeaponIndex].fireRate;
 
-
-        // Raycast
-        RaycastHit hit = new RaycastHit();
-        if (Physics.Raycast(spawn.position, v_bloom, out hit, 1000f, canBeShot))
+        for (int i = 0; i < Mathf.Max(1, weaponDatas[currentWeaponIndex].pellets); i++)
         {
-            // point : The impact point in world space where the ray hit the collider > 射線的準確點
-            // normal : The normal of the surface the ray hit. > 平面的垂直線
-            GameObject bulletHole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
-            bulletHole.transform.SetParent(hit.collider.transform);
-            Destroy(bulletHole, 6f);
+            // bloom
+            Vector3 v_bloom = spawn.position + spawn.forward * 1000f;
+            v_bloom += Random.Range(-weaponDatas[currentWeaponIndex].bloom, weaponDatas[currentWeaponIndex].bloom) * spawn.up * 2;
+            v_bloom += Random.Range(-weaponDatas[currentWeaponIndex].bloom, weaponDatas[currentWeaponIndex].bloom) * spawn.right * 0.8f;
+            v_bloom -= spawn.position;
+            v_bloom.Normalize();
 
-            if (hit.collider.gameObject.layer == 11)
+            // Raycast
+            RaycastHit hit = new RaycastHit();
+            if (Physics.Raycast(spawn.position, v_bloom, out hit, 1000f, canBeShot))
             {
-                hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage);
+                // point : The impact point in world space where the ray hit the collider > 射線的準確點
+                // normal : The normal of the surface the ray hit. > 平面的垂直線
+                GameObject bulletHole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal, Vector3.up));
+                bulletHole.transform.SetParent(hit.collider.transform);
+                Destroy(bulletHole, 6f);
+
+                if (hit.collider.gameObject.layer == 11)
+                {
+                    hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage);
+                }
             }
         }
 
-        currentCoolDown = weaponDatas[currentWeaponIndex].fireRate;
+        if (weaponDatas[currentWeaponIndex].recovery) currentWeapon.GetComponent<Animator>().SetTrigger("recovery");
     }
 
     /// <summary>
@@ -180,6 +185,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         // 裝備武器
         if (Input.GetKeyDown(KeyCode.Alpha1)) { photonView.RPC("Equip", RpcTarget.All, 0); }
         if (Input.GetKeyDown(KeyCode.Alpha2)) { photonView.RPC("Equip", RpcTarget.All, 1); }
+        if (Input.GetKeyDown(KeyCode.Alpha3)) { photonView.RPC("Equip", RpcTarget.All, 2); }
 
         // 射擊
         if (currentWeapon != null)

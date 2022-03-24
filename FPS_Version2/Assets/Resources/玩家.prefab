@@ -810,11 +810,11 @@ MonoBehaviour:
   jumpForce: 500
   maxHealth: 200
   currentHealth: 0
-  cameraHolder: {fileID: 3481887542017875348}
   standCollider: {fileID: 8510160766981906616}
   crounchCollider: {fileID: 493445549777554119}
   weapon_Trans: {fileID: 3481887542172437100}
   shoot_Trans: {fileID: 5484089177226372752}
+  cameraHolder: {fileID: 3481887542017875348}
   playerCamera: {fileID: 3481887542296859722}
   isGrounded: 0
 --- !u!114 &3481887543892595347
@@ -832,6 +832,7 @@ MonoBehaviour:
   weaponDatas:
   - {fileID: 11400000, guid: e3c76b44bfe8b2a41890811b4187cd72, type: 2}
   - {fileID: 11400000, guid: 441009a569b51ac45b4eac097ffb452e, type: 2}
+  - {fileID: 11400000, guid: d58bda83d743a8b458a7b30d22330be7, type: 2}
   weaponPosition: {fileID: 3481887542172437100}
   bulletHolePrefab: {fileID: 7018766316671435863, guid: 84b999bed9c568042a240d051a98fe93,
     type: 3}
