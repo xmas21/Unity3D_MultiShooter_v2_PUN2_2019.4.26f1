@@ -1,10 +1,15 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using Photon.Pun;
 
 public class scr_Launcher : MonoBehaviourPunCallbacks
 {
     #region - Variable -
-    string gameVersion = "0.0.0";
+    [Header("玩家資料")] public static scr_profile profile = new scr_profile();
+
+    [SerializeField] InputField usernameField;
+
+    string gameVersion = "0.0.0"; // 遊戲版本
 
     scr_MenuManager menu;
     #endregion
@@ -13,6 +18,8 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     void Awake()
     {
         menu = GameObject.Find("Launcher").GetComponent<scr_MenuManager>();
+
+        gameVersion = "0.0.0";
 
         // 確保所有連線的玩家均載入相同的遊戲場景
         PhotonNetwork.AutomaticallySyncScene = true;
@@ -30,16 +37,21 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     public override void OnConnectedToMaster()
     {
+        base.OnConnectedToMaster();
+
         Debug.Log("Connected to Master");
 
         PhotonNetwork.JoinLobby();
     }
 
+    /// <summary>
+    /// 連接到 Lobby
+    /// </summary>
     public override void OnJoinedLobby()
     {
-        Debug.Log("Connected to Lobby");
-
         base.OnJoinedLobby();
+
+        Debug.Log("Connected to Lobby");
 
         menu.create_match_btn.interactable = true;
         menu.join_match_btn.interactable = true;
@@ -103,10 +115,20 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     public void StartGame()
     {
+        if (string.IsNullOrEmpty(usernameField.text)) profile.username = "RANDOM_USER_" + Random.Range(0, 999);
+        else profile.username = usernameField.text;
+
         if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
         {
             PhotonNetwork.LoadLevel("遊戲場景");
         }
     }
     #endregion
+}
+
+public class scr_profile
+{
+    [Header("玩家名稱")] public string username;
+    [Header("等級")] public int level;
+    [Header("經驗值")] public int xp;
 }

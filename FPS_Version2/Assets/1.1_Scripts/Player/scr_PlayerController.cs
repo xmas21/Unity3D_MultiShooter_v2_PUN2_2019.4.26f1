@@ -52,6 +52,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     Vector3 shoot_origin;
 
     Text ammo_UI;
+    Text username_UI;
     Image healthBar;
     Rigidbody rig;
     scr_Weapon scr_weapon;
@@ -68,6 +69,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         scr_gameManager = GameObject.Find("GameManager").GetComponent<scr_GameManager>();
         healthBar = GameObject.Find("HUD/血量顯示器/Health/bar").GetComponent<Image>();
         ammo_UI = GameObject.Find("HUD/子彈/Text").GetComponent<Text>();
+        username_UI = GameObject.Find("HUD/Username/Text").GetComponent<Text>();
         rig = GetComponent<Rigidbody>();
     }
 
@@ -100,8 +102,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         Crounch();
         View();
         Jump();
-        UpdateHpBar();
-        UpdateAmmo();
+        UpdateHUD();
         BreathSwitch();
         CalculateSpeed();
     }
@@ -385,19 +386,13 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// 更新血條資訊
+    /// 更新顯示器資訊
     /// </summary>
-    void UpdateHpBar()
+    void UpdateHUD()
     {
         healthBar.fillAmount = (float)currentHealth / maxHealth;
-    }
-
-    /// <summary>
-    /// 更新子彈UI
-    /// </summary>
-    void UpdateAmmo()
-    {
         ammo_UI.text = scr_weapon.UpdateAmmo();
+        username_UI.text = scr_Launcher.profile.username;
     }
 
     /// <summary>
