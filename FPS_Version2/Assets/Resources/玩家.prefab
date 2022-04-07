@@ -705,7 +705,7 @@ GameObject:
   - component: {fileID: 3481887543892595347}
   m_Layer: 9
   m_Name: "\u73A9\u5BB6"
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -831,15 +831,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   weaponDatas:
   - {fileID: 11400000, guid: e3c76b44bfe8b2a41890811b4187cd72, type: 2}
-  - {fileID: 11400000, guid: 441009a569b51ac45b4eac097ffb452e, type: 2}
-  - {fileID: 11400000, guid: d58bda83d743a8b458a7b30d22330be7, type: 2}
   weaponPosition: {fileID: 3481887542172437100}
   bulletHolePrefab: {fileID: 7018766316671435863, guid: 84b999bed9c568042a240d051a98fe93,
     type: 3}
   canBeShot:
     serializedVersion: 2
-    m_Bits: 2359
+    m_Bits: 6455
   isAim: 0
+  hitmarker_img: {fileID: 0}
+  hitmarkerTime: 0
 --- !u!1 &4262510502667401663
 GameObject:
   m_ObjectHideFlags: 0

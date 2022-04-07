@@ -26,7 +26,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] [Header("武器座標")] Transform weapon_Trans;
     [SerializeField] [Header("發射點座標")] Transform shoot_Trans;
 
-     [Header("攝影機座標")] public GameObject cameraHolder;
+    [Header("攝影機座標")] public GameObject cameraHolder;
     [Header("玩家攝影機")] public Camera playerCamera;
 
     [HideInInspector] public bool isGrounded;
@@ -198,13 +198,13 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// </summary>
     void View()
     {
-        // 角色直接左右旋轉 (X軸)
+        // 角色直接旋轉 (左右)
         transform.Rotate(Vector3.up * Input.GetAxisRaw("Mouse X") * mouseSensitivity_X * Time.deltaTime * 60f);
 
         lookRotation += Input.GetAxisRaw("Mouse Y") * mouseSensitivity_Y * Time.deltaTime * 60f;
         lookRotation = Mathf.Clamp(lookRotation, -80, 75);
 
-        // 攝影機角度轉換 (Y軸)
+        // 攝影機角度轉換 (上下)
         cameraHolder.transform.localEulerAngles = -Vector3.right * lookRotation;
 
         // 讓武器同步轉角度
@@ -348,10 +348,6 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
             Breath(0.01f, 0.01f);
             counter += Time.deltaTime;
             weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, target_weapon_Trans, Time.deltaTime);
-        }
-        else if (true)
-        {
-
         }
         else if (isCrouching || isSliding)
         {

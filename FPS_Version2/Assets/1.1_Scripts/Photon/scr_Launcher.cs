@@ -32,11 +32,18 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         Debug.Log("Connected to Master");
 
+        PhotonNetwork.JoinLobby();
+    }
+
+    public override void OnJoinedLobby()
+    {
+        Debug.Log("Connected to Lobby");
+
+        base.OnJoinedLobby();
+
         menu.create_match_btn.interactable = true;
         menu.join_match_btn.interactable = true;
         menu.quit_btn.interactable = true;
-
-        base.OnConnectedToMaster();
     }
 
     /// <summary>

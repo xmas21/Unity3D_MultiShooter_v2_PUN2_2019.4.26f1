@@ -1,16 +1,21 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using Photon.Pun;
 using System.Collections;
+using System.Collections.Generic;
 
 public class scr_Weapon : MonoBehaviourPunCallbacks
 {
     #region - Variables -
-    [Header("武器資料")] public scr_WeaponData[] weaponDatas;
+    [Header("武器資料")] public List<scr_WeaponData> weaponDatas;
     [Header("武器座標")] public Transform weaponPosition;
     [Header("彈孔預置物")] public GameObject bulletHolePrefab;
     [Header("可以射擊的圖層")] public LayerMask canBeShot;
 
     [HideInInspector] public bool isAim;
+
+    public Image hitmarker_img;
+    public float hitmarkerTime;
 
     int currentWeaponIndex;              // 武器編號
     float currentCoolDown;               // 開槍計時器
@@ -19,6 +24,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     Transform anchor_Trans;              // 武器座標
     Transform base_Trans;                // 一般武器座標
     Transform aim_Trans;                 // 瞄準武器座標
+    Transform cameraHolder;
 
     GameObject currentWeapon;            // 目前手上的武器
     scr_PlayerController playerController;
@@ -30,17 +36,21 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Awake()
     {
         playerController = GetComponent<scr_PlayerController>();
-        currentWeaponIndex = -1;
+        hitmarker_img = GameObject.Find("HUD/Hit_marker/Image").GetComponent<Image>();
+        cameraHolder = playerController.cameraHolder.transform;
     }
 
     void Start()
     {
         foreach (scr_WeaponData data in weaponDatas) data.Initialize();
+        currentWeaponIndex = -1;
+        hitmarker_img.color = new Color(1, 1, 1, 0);
     }
 
     void Update()
     {
-        if (scr_SceneManager.paused && !photonView.IsMine) return;
+        if (scr_SceneManager.paused) return;
+        if (!photonView.IsMine) return;
 
         Onclick();
         CoolDown();
@@ -55,16 +65,13 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     [PunRPC]
     void Equip(int weapon_ID)
     {
-        // 裝備前先清除所有手上槍枝
+        // clear before equip weapon
         if (currentWeapon != null && currentWeaponIndex != weapon_ID)
         {
             if (isReloading) StopCoroutine("Reload");
             Destroy(currentWeapon);
         }
-        else if (currentWeaponIndex == weapon_ID)
-        {
-            return;
-        }
+        else if (currentWeaponIndex == weapon_ID) return;
 
         currentWeaponIndex = weapon_ID;
 
@@ -110,11 +117,15 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
 
                 if (hit.collider.gameObject.layer == 11)
                 {
+                    // give damages
                     hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage);
+
+                    // show hitmarker
+                    hitmarker_img.color = new Color(1, 1, 1, 1);
+                    hitmarkerTime = 0.5f;
                 }
             }
         }
-
         if (weaponDatas[currentWeaponIndex].recovery) currentWeapon.GetComponent<Animator>().SetTrigger("recovery");
     }
 
@@ -132,6 +143,32 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Reload_RPC()
     {
         StartCoroutine(Reload(weaponDatas[currentWeaponIndex].reload_time));
+    }
+
+    [PunRPC]
+    /// <summary>
+    /// 撿武器
+    /// </summary>
+    /// <param name="name">武器名稱</param>
+    void PickWeapon(string name)
+    {
+        // find the weapon from library
+        scr_WeaponData newWeapon = scr_GunLibrary.FindGun(name);
+
+        // add the weapon to the weaponDatas
+        // limit can only carry two guns
+        if (weaponDatas.Count >= 2)
+        {
+            // replace the weapon we're holding
+            weaponDatas[currentWeaponIndex] = newWeapon;
+            Equip(currentWeaponIndex);
+        }
+        else
+        {
+            // just equip
+            weaponDatas.Add(newWeapon);
+            Equip(weaponDatas.Count - 1);
+        }
     }
     #endregion
 
@@ -183,9 +220,8 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     void Onclick()
     {
         // 裝備武器
-        if (Input.GetKeyDown(KeyCode.Alpha1)) { photonView.RPC("Equip", RpcTarget.All, 0); }
-        if (Input.GetKeyDown(KeyCode.Alpha2)) { photonView.RPC("Equip", RpcTarget.All, 1); }
-        if (Input.GetKeyDown(KeyCode.Alpha3)) { photonView.RPC("Equip", RpcTarget.All, 2); }
+        if (Input.GetKeyDown(KeyCode.Alpha1) && weaponDatas[0] != null) { photonView.RPC("Equip", RpcTarget.All, 0); }
+        if (Input.GetKeyDown(KeyCode.Alpha2) && weaponDatas[1] != null) { photonView.RPC("Equip", RpcTarget.All, 1); }
 
         // 射擊
         if (currentWeapon != null)
@@ -257,14 +293,14 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// 槍枝冷卻
+    /// 所有冷卻
     /// </summary>
     void CoolDown()
     {
-        if (currentCoolDown > 0)
-        {
-            currentCoolDown -= Time.deltaTime;
-        }
+        if (currentCoolDown > 0) currentCoolDown -= Time.deltaTime;
+
+        if (hitmarkerTime > 0) hitmarkerTime -= Time.deltaTime;
+        else if (hitmarker_img.color.a > 0) hitmarker_img.color = Color.Lerp(hitmarker_img.color, new Color(1, 1, 1, 0), Time.deltaTime * 3.5f);
     }
 
     /// <summary>
@@ -288,5 +324,6 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
             return;
         }
     }
+
     #endregion
 }
