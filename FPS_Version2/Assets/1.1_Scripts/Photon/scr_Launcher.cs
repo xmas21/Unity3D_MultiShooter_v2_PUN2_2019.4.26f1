@@ -27,6 +27,9 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
 
     void Start()
     {
+        profile = scr_PlayerData.LoadProfile();
+        usernameField.text = profile.username;
+
         Connect();
     }
     #endregion
@@ -116,19 +119,37 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     public void StartGame()
     {
         if (string.IsNullOrEmpty(usernameField.text)) profile.username = "RANDOM_USER_" + Random.Range(0, 999);
+
         else profile.username = usernameField.text;
 
         if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
         {
+            scr_PlayerData.SaveProfile(profile);
+
             PhotonNetwork.LoadLevel("遊戲場景");
         }
     }
     #endregion
 }
 
+[System.Serializable]
 public class scr_profile
 {
     [Header("玩家名稱")] public string username;
     [Header("等級")] public int level;
     [Header("經驗值")] public int xp;
+
+    public scr_profile()
+    {
+        this.username = "DEFAULT USERNAME";
+        this.level = 1;
+        this.xp = 0;
+    }
+
+    public scr_profile(string name, int lv, int x)
+    {
+        this.username = name;
+        this.level = lv;
+        this.xp = x;
+    }
 }

@@ -1,6 +1,7 @@
 ﻿using Photon.Pun;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class scr_PlayerController : MonoBehaviourPunCallbacks
 {
@@ -28,8 +29,10 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
     [Header("攝影機座標")] public GameObject cameraHolder;
     [Header("玩家攝影機")] public Camera playerCamera;
+    [Header("玩家名稱")] public TextMeshPro playerUsername;
 
     [HideInInspector] public bool isGrounded;
+    [HideInInspector] public scr_profile playerProfile; // 玩家資訊
 
     bool isMoving = false;              // 是否在跑步
     bool isRunning = false;             // 是否在跑步
@@ -95,6 +98,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         Pause();
 
         if (scr_SceneManager.paused) return;
+
         Cursor.lockState = CursorLockMode.Locked;
 
         Move();
@@ -105,6 +109,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         UpdateHUD();
         BreathSwitch();
         CalculateSpeed();
+
+        photonView.RPC("SyncProfile", RpcTarget.All, scr_Launcher.profile.username, scr_Launcher.profile.level, scr_Launcher.profile.xp);
     }
 
     void FixedUpdate()
@@ -147,6 +153,17 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         weapon_Trans.localPosition = Vector3.Lerp(weapon_Trans.localPosition, weapon_origin, Time.deltaTime * time);
         shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, shoot_origin, Time.deltaTime * time);
     }
+
+    /// <summary>
+    /// 更新玩家資訊
+    /// </summary>
+    /// <param name="p_profile">玩家資訊</param>
+    [PunRPC]
+    void SyncProfile(string p_name, int p_level, int p_xp)
+    {
+        playerProfile = new scr_profile(p_name, p_level, p_xp);
+        playerUsername.text = playerProfile.username;
+    }
     #endregion
 
     #region - Methods -
@@ -166,33 +183,6 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
             }
         }
     }
-
-    ///// <summary>
-    ///// 鼠標消失
-    ///// </summary>
-    //void CursorLock()
-    //{
-    //    //if (cursorLocked)
-    //    //{
-    //    Cursor.lockState = CursorLockMode.Locked;
-    //    //    Cursor.visible = false;
-
-    //    //    if (Input.GetKeyDown(KeyCode.Escape))
-    //    //    {
-    //    //        cursorLocked = false;
-    //    //    }
-    //    //}
-    //    //else
-    //    //{
-    //    //    Cursor.lockState = CursorLockMode.None;
-    //    //    Cursor.visible = true;
-
-    //    //    if (Input.GetKeyDown(KeyCode.Escape))
-    //    //    {
-    //    //        cursorLocked = true;
-    //    //    }
-    //    //}
-    //}
 
     /// <summary>
     /// 視角
