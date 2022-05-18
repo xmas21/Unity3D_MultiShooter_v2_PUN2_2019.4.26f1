@@ -52,7 +52,7 @@ public class scr_MenuManager : MonoBehaviour
     void JoinMatch()
     {
         aud.PlayOneShot(aud.clip, 0.4f);
-        launcher.Join();
+        //launcher.Join();
     }
 
     /// <summary>

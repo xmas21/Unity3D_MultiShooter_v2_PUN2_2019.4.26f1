@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
+using Photon.Realtime;
+using System.Collections.Generic;
 
 public class scr_Launcher : MonoBehaviourPunCallbacks
 {
@@ -8,6 +10,10 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     [Header("玩家資料")] public static scr_profile profile = new scr_profile();
 
     [SerializeField] InputField usernameField;
+    [SerializeField] [Header("主頁面")] GameObject mainPage;
+    [SerializeField] [Header("房間頁面")] GameObject roomPage;
+    [SerializeField] [Header("房間按鈕")] GameObject room_Btn;
+    [SerializeField] [Header("房間列表")] List<RoomInfo> room_List;
 
     string gameVersion = "0.0.0"; // 遊戲版本
 
@@ -40,11 +46,11 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     public override void OnConnectedToMaster()
     {
-        base.OnConnectedToMaster();
-
         Debug.Log("Connected to Master");
 
         PhotonNetwork.JoinLobby();
+
+        base.OnConnectedToMaster();
     }
 
     /// <summary>
@@ -82,6 +88,30 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
 
         base.OnJoinRandomFailed(returnCode, message);
     }
+
+    /// <summary>
+    /// 房間資訊更新
+    /// </summary>
+    /// <param name="roomList">房間列表</param>
+    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+    {
+        room_List = roomList;
+        ClearRoomList();
+
+        Transform content = roomPage.transform.Find("Scroll View/Viewport/Content");
+
+        foreach (RoomInfo info in room_List)
+        {
+            GameObject newRoomButton = Instantiate(room_Btn, content) as GameObject;
+
+            newRoomButton.transform.Find("Name").GetComponent<Text>().text = info.Name;
+            newRoomButton.transform.Find("Count").GetComponent<Text>().text = info.PlayerCount + " / " + info.MaxPlayers;
+
+            newRoomButton.GetComponent<Button>().onClick.AddListener(delegate { Join(newRoomButton.transform); });
+        }
+
+        base.OnRoomListUpdate(roomList);
+    }
     #endregion
 
     #region - Method -
@@ -100,9 +130,12 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// <summary>
     /// 加入房間
     /// </summary>
-    public void Join()
+    /// <param name="t_button">房間的按鈕</param>
+    public void Join(Transform t_button)
     {
-        PhotonNetwork.JoinRandomRoom();
+        Debug.Log("JOINING ROOM @ " + Time.time);
+        string t_roomname = t_button.transform.Find("Name").GetComponent<Text>().text;
+        PhotonNetwork.JoinRoom(t_roomname);
     }
 
     /// <summary>
@@ -110,6 +143,9 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     public void CreateRoom()
     {
+        RoomOptions options = new RoomOptions();
+        options.MaxPlayers = 8;
+
         PhotonNetwork.CreateRoom("");
     }
 
@@ -129,6 +165,44 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
             PhotonNetwork.LoadLevel("遊戲場景");
         }
     }
+
+    /// <summary>
+    /// 關閉全部頁面
+    /// </summary>
+    public void PageCloseAll()
+    {
+        mainPage.SetActive(false);
+        roomPage.SetActive(false);
+    }
+
+    /// <summary>
+    /// 開啟主要頁面
+    /// </summary>
+    public void OpenMainPage()
+    {
+        PageCloseAll();
+        mainPage.SetActive(true);
+    }
+
+    /// <summary>
+    /// 開啟房間頁面
+    /// </summary>
+    public void OpenRoomPage()
+    {
+        PageCloseAll();
+        roomPage.SetActive(true);
+    }
+
+    /// <summary>
+    /// 清除房間清單
+    /// </summary>
+    public void ClearRoomList()
+    {
+        Transform content = roomPage.transform.Find("Scroll View/Viewport/Content");
+        foreach (Transform room in content) Destroy(room.gameObject);
+    }
+
+
     #endregion
 }
 
