@@ -41,8 +41,8 @@ public class scr_MenuManager : MonoBehaviour
     /// </summary>
     void Onclick()
     {
-        join_match_btn.onClick.AddListener(JoinMatch);
-        create_match_btn.onClick.AddListener(CreateMatch);
+        // join_match_btn.onClick.AddListener(JoinMatch);
+        // create_match_btn.onClick.AddListener(CreateMatch);
         quit_btn.onClick.AddListener(Quit);
     }
 

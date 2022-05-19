@@ -9,13 +9,19 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     #region - Variable -
     [Header("玩家資料")] public static scr_profile profile = new scr_profile();
 
-    [SerializeField] InputField usernameField;
+    [SerializeField] [Header("姓名輸入欄位")] InputField usernameField;
+
+    [SerializeField] [Header("房名輸入欄位")] InputField roomnameField;
+    [SerializeField] [Header("房間人數拉桿")] Slider maxPlayer_Slider;
+    [SerializeField] [Header("房間人數文字")] Text maxPlayer_Text;
+
     [SerializeField] [Header("主頁面")] GameObject mainPage;
     [SerializeField] [Header("房間頁面")] GameObject roomPage;
+    [SerializeField] [Header("創房頁面")] GameObject createPage;
     [SerializeField] [Header("房間按鈕")] GameObject room_Btn;
     [SerializeField] [Header("房間列表")] List<RoomInfo> room_List;
 
-    string gameVersion = "0.0.0"; // 遊戲版本
+    string gameVersion;          // 遊戲版本
 
     scr_MenuManager menu;
     #endregion
@@ -144,9 +150,32 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     public void CreateRoom()
     {
         RoomOptions options = new RoomOptions();
-        options.MaxPlayers = 8;
+        options.MaxPlayers = (byte)maxPlayer_Slider.value;
 
-        PhotonNetwork.CreateRoom("");
+        // Hashtable 為 自訂屬性的回傳值
+        ExitGames.Client.Photon.Hashtable properties = new ExitGames.Client.Photon.Hashtable();
+        properties.Add("map", 0);
+        options.CustomRoomProperties = properties;
+
+        PhotonNetwork.CreateRoom(roomnameField.text, options);
+    }
+
+    /// <summary>
+    /// 切換地圖
+    /// </summary>
+    public void ChangeMap()
+    {
+
+    }
+
+    /// <summary>
+    /// 控制最多玩家數量拉桿
+    /// </summary>
+    /// <param name="f_value">數量</param>
+    public void ChangeMaxPlayerSlider(float f_value)
+    {
+        // 把 f_value 四捨五入
+        maxPlayer_Text.text = Mathf.RoundToInt(f_value).ToString();
     }
 
     /// <summary>
@@ -173,6 +202,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         mainPage.SetActive(false);
         roomPage.SetActive(false);
+        createPage.SetActive(false);
     }
 
     /// <summary>
@@ -194,6 +224,15 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
+    /// 開啟創房頁面
+    /// </summary>
+    public void OpenCreatePage()
+    {
+        PageCloseAll();
+        createPage.SetActive(true);
+    }
+
+    /// <summary>
     /// 清除房間清單
     /// </summary>
     public void ClearRoomList()
@@ -201,11 +240,12 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         Transform content = roomPage.transform.Find("Scroll View/Viewport/Content");
         foreach (Transform room in content) Destroy(room.gameObject);
     }
-
-
     #endregion
 }
 
+/// <summary>
+/// 帳號資訊
+/// </summary>
 [System.Serializable]
 public class scr_profile
 {

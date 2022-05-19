@@ -995,6 +995,10 @@ MonoBehaviour:
   playerCamera: {fileID: 3481887542296859722}
   playerUsername: {fileID: 7559248832060354610}
   isGrounded: 0
+  playerProfile:
+    username: DEFAULT USERNAME
+    level: 1
+    xp: 0
 --- !u!114 &3481887543892595347
 MonoBehaviour:
   m_ObjectHideFlags: 0
