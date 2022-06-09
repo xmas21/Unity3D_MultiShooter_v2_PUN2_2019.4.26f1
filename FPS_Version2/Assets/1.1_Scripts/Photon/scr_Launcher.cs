@@ -139,8 +139,10 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// <param name="t_button">房間的按鈕</param>
     public void Join(Transform t_button)
     {
-        Debug.Log("JOINING ROOM @ " + Time.time);
         string t_roomname = t_button.transform.Find("Name").GetComponent<Text>().text;
+
+        VerifyUsername();
+
         PhotonNetwork.JoinRoom(t_roomname);
     }
 
@@ -183,14 +185,11 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     public void StartGame()
     {
-        if (string.IsNullOrEmpty(usernameField.text)) profile.username = "RANDOM_USER_" + Random.Range(0, 999);
-
-        else profile.username = usernameField.text;
+        VerifyUsername();
 
         if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
         {
             scr_PlayerData.SaveProfile(profile);
-
             PhotonNetwork.LoadLevel("遊戲場景");
         }
     }
@@ -240,6 +239,18 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         Transform content = roomPage.transform.Find("Scroll View/Viewport/Content");
         foreach (Transform room in content) Destroy(room.gameObject);
     }
+
+    /// <summary>
+    /// 驗證使用者名稱
+    /// </summary>
+    void VerifyUsername()
+    {
+        if (string.IsNullOrEmpty(usernameField.text)) profile.username = "RANDOM_USER_" + Random.Range(100, 1000);
+
+        else profile.username = usernameField.text;
+    }
+
+
     #endregion
 }
 

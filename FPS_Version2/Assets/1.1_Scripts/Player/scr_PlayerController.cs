@@ -110,6 +110,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         BreathSwitch();
         CalculateSpeed();
 
+        if (Input.GetKey(KeyCode.U)) TakeDamage(50, -1);
+
         photonView.RPC("SyncProfile", RpcTarget.All, scr_Launcher.profile.username, scr_Launcher.profile.level, scr_Launcher.profile.xp);
     }
 
@@ -171,7 +173,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     /// 受傷
     /// </summary>
     /// <param name="damage">傷害值</param>s
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, int _actor)
     {
         if (photonView.IsMine)
         {
@@ -179,7 +181,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
             if (currentHealth <= 0)
             {
-                Die();
+                // Die();
+                scr_gameManager.Spawn();
+                scr_gameManager.ChangeStat_S(PhotonNetwork.LocalPlayer.ActorNumber, 1, 1);
+
+                // 摔傷等等不會回傳 | 回傳給_actor stat:0(kill) amount:1(+1)
+                if (_actor >= 0) scr_gameManager.ChangeStat_S(_actor, 0, 1);
+
+                PhotonNetwork.Destroy(gameObject);
             }
         }
     }
@@ -372,6 +381,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     void Die()
     {
         scr_gameManager.Spawn();
+        scr_gameManager.ChangeStat_S(PhotonNetwork.LocalPlayer.ActorNumber, 1, 1);
         PhotonNetwork.Destroy(gameObject);
     }
 

@@ -118,7 +118,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
                 if (hit.collider.gameObject.layer == 11)
                 {
                     // give damages
-                    hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage);
+                    hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage, PhotonNetwork.LocalPlayer.ActorNumber);
 
                     // show hitmarker
                     hitmarker_img.color = new Color(1, 1, 1, 1);
@@ -134,9 +134,9 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     /// </summary>
     /// <param name="damage">傷害值</param>
     [PunRPC]
-    void TakeDamage(int damage)
+    void TakeDamage(int damage, int _actor)
     {
-        playerController.TakeDamage(damage);
+        playerController.TakeDamage(damage, _actor);
     }
 
     [PunRPC]

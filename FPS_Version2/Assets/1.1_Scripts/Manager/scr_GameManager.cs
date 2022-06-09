@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Photon.Pun;
 using Photon.Realtime;
@@ -14,6 +15,10 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
 
     [SerializeField] [Header("玩家列表")] List<PlayerInfo> playerInfos = new List<PlayerInfo>();
     [SerializeField] [Header("個人 ID")] int myID;
+
+    Text myKill_text;
+    Text myDeath_text;
+    Transform leaderBoard_Page;
     #endregion
 
     #region - MonoBehaviour -
@@ -21,6 +26,17 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     {
         ValidateConnection();
         Spawn();
+        InitializeUI();
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            // true => false
+            if (leaderBoard_Page.gameObject.activeSelf) leaderBoard_Page.gameObject.SetActive(false);
+            else LeaderBoard(leaderBoard_Page);
+        }
     }
     #endregion
 
@@ -43,7 +59,7 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
                 break;
             case EventCodes.UpdatePlayers:
                 break;
-            case EventCodes.ChangeState:
+            case EventCodes.ChangeStat:
                 break;
             default:
                 break;
@@ -154,14 +170,14 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     /// 改變狀態 - 發送 (Send)
     /// </summary>
     /// <param name="actor">ID</param>
-    /// <param name="state">狀態</param>
+    /// <param name="state">0 : Death | 1 : Kill</param>
     /// <param name="amt">數量</param>
-    public void ChangeState_S(int actor, byte state, byte amt)
+    public void ChangeStat_S(int actor, byte stat, byte amt)
     {
-        object[] package = new object[] { actor, state, amt };
+        object[] package = new object[] { actor, stat, amt };
 
         PhotonNetwork.RaiseEvent(
-         (byte)EventCodes.ChangeState,
+         (byte)EventCodes.ChangeStat,
          package,
          new RaiseEventOptions { Receivers = ReceiverGroup.All },
          new SendOptions { Reliability = true });
@@ -171,7 +187,7 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     /// 改變狀態 - 接收 (Recieve)
     /// </summary>
     /// <param name="data">玩家資訊</param>
-    public void ChangeState_R(object[] data)
+    public void ChangeStat_R(object[] data)
     {
         int actor = (int)data[0];
         byte state = (byte)data[1];
@@ -197,6 +213,11 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
                 }
                 return;
             }
+            if (i == myID) RefreshMyStats();
+
+            if (leaderBoard_Page.gameObject.activeSelf) LeaderBoard(leaderBoard_Page);
+
+            return;
         }
     }
     #endregion
@@ -214,17 +235,123 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     /// <summary>
     /// 驗證連結
     /// </summary>
-    private void ValidateConnection()
+    void ValidateConnection()
     {
         if (PhotonNetwork.IsConnected) return;
         SceneManager.LoadScene(0);
     }
+
+    /// <summary>
+    /// 初始化UI
+    /// </summary>
+    void InitializeUI()
+    {
+        myKill_text = GameObject.Find("HUD/KD/Kill Text").GetComponent<Text>();
+        myDeath_text = GameObject.Find("HUD/KD/Death Text").GetComponent<Text>();
+        leaderBoard_Page = GameObject.Find("HUD").transform.Find("Leader Board").transform;
+
+        RefreshMyStats();
+    }
+
+    /// <summary>
+    /// 更新個人統計
+    /// </summary>
+    void RefreshMyStats()
+    {
+        Debug.Log(playerInfos.Count.ToString() + " " + myID.ToString() + " " + Time.time.ToString());
+
+        if (playerInfos.Count > myID)
+        {
+            myKill_text.text = $"{playerInfos[myID].kills} K";
+            myDeath_text.text = $"{playerInfos[myID].deaths} D";
+        }
+        else
+        {
+            myKill_text.text = "0 K";
+            myDeath_text.text = "0 D";
+        }
+    }
+
+    /// <summary>
+    /// 記分板
+    /// </summary>
+    /// <param name="_leaderboard">記分板座標</param>
+    void LeaderBoard(Transform _leaderboard)
+    {
+        // clean (超過一個的都刪除)
+        for (int i = 2; i < _leaderboard.childCount; i++) Destroy(_leaderboard.GetChild(1).gameObject);
+
+        // set detail
+        _leaderboard.Find("Header/Mode").GetComponent<Text>().text = "FREE FOR ALL";
+        _leaderboard.Find("Header/Map").GetComponent<Text>().text = "Battlefield";
+
+        // cache prefab
+        GameObject playercard = _leaderboard.GetChild(1).gameObject;
+        playercard.SetActive(false);
+
+        // sort
+        List<PlayerInfo> sorted = SortPlayer(playerInfos);
+
+        // display per card (already sorted)
+        bool alternateColor = false;
+        foreach (PlayerInfo pi in sorted)
+        {
+            GameObject newcard = Instantiate(playercard, _leaderboard) as GameObject;
+
+            if (alternateColor) newcard.GetComponent<Image>().color += new Color32(0, 0, 0, 180);
+            alternateColor = !alternateColor;
+
+            newcard.transform.Find("Level").GetComponent<Text>().text = pi.profile.level.ToString("00");
+            newcard.transform.Find("Username").GetComponent<Text>().text = pi.profile.username;
+            newcard.transform.Find("Score Value").GetComponent<Text>().text = (pi.kills * 100).ToString();
+            newcard.transform.Find("Kill Value").GetComponent<Text>().text = pi.kills.ToString();
+            newcard.transform.Find("Death Value").GetComponent<Text>().text = pi.deaths.ToString();
+
+            newcard.SetActive(true);
+        }
+        // activate
+        _leaderboard.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// 排序玩家 (按照擊殺數量排序)
+    /// </summary>
+    /// <param name="_info">玩家清單</param>
+    /// <returns></returns>
+    List<PlayerInfo> SortPlayer(List<PlayerInfo> _info)
+    {
+        List<PlayerInfo> sorted = new List<PlayerInfo>();
+
+        while (sorted.Count < _info.Count)
+        {
+            // set default
+            short highest = -1;
+            PlayerInfo killLeader = _info[0];
+
+            foreach (PlayerInfo pi in _info)
+            {
+                if (sorted.Contains(pi)) continue;
+
+                if (pi.kills > highest)
+                {
+                    killLeader = pi;
+                    highest = pi.kills;
+                }
+            }
+            // add player
+            sorted.Add(killLeader);
+        }
+        return sorted;
+    }
     #endregion
 }
 
+/// <summary>
+/// 事件狀態
+/// </summary>
 public enum EventCodes : byte
 {
-    Newplayer, UpdatePlayers, ChangeState
+    Newplayer, UpdatePlayers, ChangeStat
 }
 
 /// <summary>
@@ -232,7 +359,7 @@ public enum EventCodes : byte
 /// </summary>
 public class PlayerInfo
 {
-    public scr_profile profile;
+    [Header("玩家資料")] public scr_profile profile;
     [Header("玩家 ID")] public int actor;
     public short kills;
     public short deaths;
