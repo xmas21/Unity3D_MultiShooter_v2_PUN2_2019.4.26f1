@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -6,7 +7,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
 
-public class scr_GameManager : MonoBehaviour, IOnEventCallback
+public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 {
     #region - Variables -
     [SerializeField] [Header("玩家預置物名稱")] string playerPrefab_String;
@@ -16,21 +17,32 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     [SerializeField] [Header("玩家列表")] List<PlayerInfo> playerInfos = new List<PlayerInfo>();
     [SerializeField] [Header("個人 ID")] int myID;
 
+    public int mainMenu = 0;
+    public int killCount = 3;
+
+    [Header("地圖攝影機")] public GameObject mapCamera;
+
     Text myKill_text;
     Text myDeath_text;
     Transform leaderBoard_Page;
+    Transform endGame_Page;
+
+    GameState gameState = GameState.Waiting;
     #endregion
 
     #region - MonoBehaviour -
     void Start()
     {
         ValidateConnection();
-        Spawn();
         InitializeUI();
+        NewPlayer_S(scr_Launcher.profile);
+        Spawn();
     }
 
     void Update()
     {
+        if (gameState == GameState.Ending) return;
+
         if (Input.GetKeyDown(KeyCode.Tab))
         {
             // true => false
@@ -111,18 +123,19 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
 
         playerInfos.Add(pi);
 
-        UpdatePlayer_S(playerInfos);
+        UpdatePlayer_S((int)gameState, playerInfos);
     }
 
     /// <summary>
     /// Host更新玩家 -寄送 (Send)
     /// </summary>
     /// <param name="info">玩家資訊</param>
-    public void UpdatePlayer_S(List<PlayerInfo> info)
+    public void UpdatePlayer_S(int _state, List<PlayerInfo> info)
     {
         // 房間內玩家數量
-        object[] package = new object[info.Count];
+        object[] package = new object[info.Count + 1];
 
+        package[0] = _state;
         for (int i = 0; i < info.Count; i++)
         {
             // 玩家的個人資料
@@ -135,7 +148,7 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
             piece[4] = info[i].kills;
             piece[5] = info[i].deaths;
 
-            package[i] = piece[i];
+            package[i + 1] = piece;
         }
 
         PhotonNetwork.RaiseEvent(
@@ -151,10 +164,11 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     /// <param name="data"></param>
     public void UpdatePlayer_R(object[] data)
     {
+        gameState = (GameState)data[0];
         playerInfos = new List<PlayerInfo>();
 
         // 每個玩家的資訊
-        for (int i = 0; i < data.Length; i++)
+        for (int i = 1; i < data.Length; i++)
         {
             object[] extract = (object[])data[i];
 
@@ -162,8 +176,10 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
 
             playerInfos.Add(pi);
 
-            if (PhotonNetwork.LocalPlayer.ActorNumber == pi.actor) myID = i;
+            if (PhotonNetwork.LocalPlayer.ActorNumber == pi.actor) myID = i - 1;
         }
+
+        StateCheck();
     }
 
     /// <summary>
@@ -211,14 +227,22 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
                         Debug.Log($"Player { playerInfos[i].profile.username} : deaths = {playerInfos[i].deaths}");
                         break;
                 }
-                return;
+                if (i == myID) RefreshMyStats();
+                if (leaderBoard_Page.gameObject.activeSelf) LeaderBoard(leaderBoard_Page);
+
+                break;
             }
-            if (i == myID) RefreshMyStats();
-
-            if (leaderBoard_Page.gameObject.activeSelf) LeaderBoard(leaderBoard_Page);
-
-            return;
         }
+        ScoreCheck();
+    }
+
+    /// <summary>
+    /// 離開房間
+    /// </summary>
+    public override void OnLeftRoom()
+    {
+        base.OnLeftRoom();
+        SceneManager.LoadScene(mainMenu);
     }
     #endregion
 
@@ -238,7 +262,7 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     void ValidateConnection()
     {
         if (PhotonNetwork.IsConnected) return;
-        SceneManager.LoadScene(0);
+        SceneManager.LoadScene(mainMenu);
     }
 
     /// <summary>
@@ -249,6 +273,9 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
         myKill_text = GameObject.Find("HUD/KD/Kill Text").GetComponent<Text>();
         myDeath_text = GameObject.Find("HUD/KD/Death Text").GetComponent<Text>();
         leaderBoard_Page = GameObject.Find("HUD").transform.Find("Leader Board").transform;
+        endGame_Page = GameObject.Find("畫布 Canvas").transform.Find("HUD Gameover").transform;
+
+        mapCamera.SetActive(false);
 
         RefreshMyStats();
     }
@@ -258,8 +285,6 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     /// </summary>
     void RefreshMyStats()
     {
-        Debug.Log(playerInfos.Count.ToString() + " " + myID.ToString() + " " + Time.time.ToString());
-
         if (playerInfos.Count > myID)
         {
             myKill_text.text = $"{playerInfos[myID].kills} K";
@@ -314,6 +339,85 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
     }
 
     /// <summary>
+    /// 狀態確定
+    /// </summary>
+    void StateCheck()
+    {
+        if (gameState == GameState.Ending) EndGame();
+    }
+
+    /// <summary>
+    /// 確定分數
+    /// </summary>
+    void ScoreCheck()
+    {
+        // define temporary variables
+        bool detectWin = false;
+
+        // check to see if any player has met the win conditions
+        foreach (PlayerInfo pi in playerInfos)
+        {
+            // free for all
+            if (pi.kills >= killCount)
+            {
+                detectWin = true;
+                break;
+            }
+        }
+
+        // did we find a winner
+        if (detectWin)
+        {
+            // are we the master client? is the game still going on
+            if (PhotonNetwork.IsMasterClient && gameState != GameState.Ending)
+            {
+                UpdatePlayer_S((int)GameState.Ending, playerInfos);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 結束遊戲
+    /// </summary>
+    void EndGame()
+    {
+        // set game state to end
+        gameState = GameState.Ending;
+
+        // disable room
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.DestroyAll();
+            PhotonNetwork.CurrentRoom.IsVisible = false;
+            PhotonNetwork.CurrentRoom.IsOpen = false;
+        }
+
+        // activate map camera
+        mapCamera.SetActive(true);
+
+        // show end game ui
+        endGame_Page.gameObject.SetActive(true);
+        LeaderBoard(endGame_Page.Find("Leader Board"));
+
+        // wait x seconds and then return to the main menu
+        StartCoroutine(End(6f));
+    }
+
+    /// <summary>
+    /// 結束遊戲
+    /// </summary>
+    /// <param name="_time">等待時間</param>
+    /// <returns></returns>
+    IEnumerator End(float _time)
+    {
+        yield return new WaitForSeconds(_time);
+
+        // disconnect
+        PhotonNetwork.AutomaticallySyncScene = false;
+        PhotonNetwork.LeaveRoom();
+    }
+
+    /// <summary>
     /// 排序玩家 (按照擊殺數量排序)
     /// </summary>
     /// <param name="_info">玩家清單</param>
@@ -352,6 +456,17 @@ public class scr_GameManager : MonoBehaviour, IOnEventCallback
 public enum EventCodes : byte
 {
     Newplayer, UpdatePlayers, ChangeStat
+}
+
+/// <summary>
+/// 遊戲狀態
+/// </summary>
+public enum GameState
+{
+    Waiting = 0,
+    Starting = 1,
+    Playing = 2,
+    Ending = 3
 }
 
 /// <summary>

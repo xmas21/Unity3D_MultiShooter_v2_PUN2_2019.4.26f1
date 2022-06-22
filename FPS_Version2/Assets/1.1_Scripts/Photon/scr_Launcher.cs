@@ -249,8 +249,6 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
 
         else profile.username = usernameField.text;
     }
-
-
     #endregion
 }
 

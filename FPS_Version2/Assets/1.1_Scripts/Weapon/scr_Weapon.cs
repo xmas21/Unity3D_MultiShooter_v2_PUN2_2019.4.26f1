@@ -139,6 +139,9 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
         playerController.TakeDamage(damage, _actor);
     }
 
+    /// <summary>
+    /// 裝子彈
+    /// </summary>
     [PunRPC]
     void Reload_RPC()
     {
