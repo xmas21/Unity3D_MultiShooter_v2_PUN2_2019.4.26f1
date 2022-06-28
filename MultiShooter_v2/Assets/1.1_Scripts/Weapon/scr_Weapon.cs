@@ -157,6 +157,7 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
     {
         // find the weapon from library
         scr_WeaponData newWeapon = scr_GunLibrary.FindGun(name);
+        newWeapon.Initialize();
 
         // add the weapon to the weaponDatas
         // limit can only carry two guns

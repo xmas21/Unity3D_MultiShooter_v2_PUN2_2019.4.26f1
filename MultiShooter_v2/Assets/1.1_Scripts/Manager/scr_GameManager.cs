@@ -19,6 +19,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
     public int mainMenu = 0;
     public int killCount = 3;
+    public bool perpetual;
 
     [Header("地圖攝影機")] public GameObject mapCamera;
 
@@ -237,6 +238,47 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     }
 
     /// <summary>
+    /// 新配對 - 發送 (Send)
+    /// </summary>
+    public void NewMatch_S()
+    {
+        PhotonNetwork.RaiseEvent(
+            (byte)EventCodes.NewMatch,
+            null,
+            new RaiseEventOptions { Receivers = ReceiverGroup.All },
+            new SendOptions { Reliability = true }
+            );
+    }
+
+    /// <summary>
+    /// 新配對 - 接收 (Recieve)
+    /// </summary>
+    public void NewMatch_R()
+    {
+        // set game state to waiting
+        gameState = GameState.Waiting;
+
+        // deactivate map camera
+        mapCamera.SetActive(false);
+
+        // hide end game ui
+        endGame_Page.gameObject.SetActive(false);
+
+        // reset score
+        foreach (PlayerInfo pi in playerInfos)
+        {
+            pi.kills = 0;
+            pi.deaths = 0;
+        }
+
+        // reset personal stat
+        RefreshMyStats();
+
+        // spawn
+        Spawn();
+    }
+
+    /// <summary>
     /// 離開房間
     /// </summary>
     public override void OnLeftRoom()
@@ -388,8 +430,12 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (PhotonNetwork.IsMasterClient)
         {
             PhotonNetwork.DestroyAll();
-            PhotonNetwork.CurrentRoom.IsVisible = false;
-            PhotonNetwork.CurrentRoom.IsOpen = false;
+
+            if (!perpetual)
+            {
+                PhotonNetwork.CurrentRoom.IsVisible = false;
+                PhotonNetwork.CurrentRoom.IsOpen = false;
+            }
         }
 
         // activate map camera
@@ -412,9 +458,20 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         yield return new WaitForSeconds(_time);
 
-        // disconnect
-        PhotonNetwork.AutomaticallySyncScene = false;
-        PhotonNetwork.LeaveRoom();
+        if (perpetual)
+        {
+            // new match
+            if (PhotonNetwork.IsMasterClient)
+            {
+                NewMatch_S();
+            }
+        }
+        else
+        {
+            // disconnect
+            PhotonNetwork.AutomaticallySyncScene = false;
+            PhotonNetwork.LeaveRoom();
+        }
     }
 
     /// <summary>
@@ -455,7 +512,10 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 /// </summary>
 public enum EventCodes : byte
 {
-    Newplayer, UpdatePlayers, ChangeStat
+    Newplayer,
+    UpdatePlayers,
+    ChangeStat,
+    NewMatch
 }
 
 /// <summary>
