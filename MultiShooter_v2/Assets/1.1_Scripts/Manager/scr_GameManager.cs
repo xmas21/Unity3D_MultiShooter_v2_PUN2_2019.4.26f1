@@ -17,6 +17,11 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     [SerializeField] [Header("玩家列表")] List<PlayerInfo> playerInfos = new List<PlayerInfo>();
     [SerializeField] [Header("個人 ID")] int myID;
 
+    [SerializeField] [Header("matchLength")] int matchLength = 180;
+    [SerializeField] [Header("matchTimer")] Text matchTimer_text;
+    [SerializeField] [Header("currentMatchTime")] int currentMatchTime;
+    [SerializeField] [Header("timerCoroutine")] Coroutine timerCoroutine;
+
     public int mainMenu = 0;
     public int killCount = 3;
     public bool perpetual;
@@ -36,6 +41,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         ValidateConnection();
         InitializeUI();
+        InitTimer();
         NewPlayer_S(scr_Launcher.profile);
         Spawn();
     }
@@ -69,13 +75,19 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         switch (ec)
         {
             case EventCodes.Newplayer:
-                break;
+                NewPlayer_R(o); break;
+
             case EventCodes.UpdatePlayers:
-                break;
+                UpdatePlayer_R(o); break;
+
             case EventCodes.ChangeStat:
-                break;
-            default:
-                break;
+                ChangeStat_R(o); break;
+
+            case EventCodes.NewMatch:
+                NewMatch_R(); break;
+
+            case EventCodes.RefreshTimer:
+                RefreshTimer_R(o); break;
         }
     }
 
@@ -274,8 +286,36 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         // reset personal stat
         RefreshMyStats();
 
+        // reset matchTimer
+        RefreshTimerUI();
+
         // spawn
         Spawn();
+    }
+
+
+    /// <summary>
+    /// 刷新時間 - 發送 (Send)
+    /// </summary>
+    public void RefreshTimer_S()
+    {
+        object[] package = new object[] { currentMatchTime };
+
+        PhotonNetwork.RaiseEvent(
+            (byte)EventCodes.RefreshTimer,
+            package,
+            new RaiseEventOptions { Receivers = ReceiverGroup.All },
+            new SendOptions { Reliability = true }
+            );
+    }
+
+    /// <summary>
+    /// 刷新時間 - 接收 (Recieve)
+    /// </summary>
+    public void RefreshTimer_R(object[] _data)
+    {
+        currentMatchTime = (int)_data[0];
+        RefreshTimerUI();
     }
 
     /// <summary>
@@ -295,6 +335,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public void Spawn()
     {
         Transform temp = spawnPoints[Random.Range(0, spawnPoints.Length)];
+
         PhotonNetwork.Instantiate(playerPrefab_String, temp.position, temp.rotation);
     }
 
@@ -304,16 +345,18 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     void ValidateConnection()
     {
         if (PhotonNetwork.IsConnected) return;
+
         SceneManager.LoadScene(mainMenu);
     }
 
     /// <summary>
-    /// 初始化UI
+    /// 初始化 UI
     /// </summary>
     void InitializeUI()
     {
         myKill_text = GameObject.Find("HUD/KD/Kill Text").GetComponent<Text>();
         myDeath_text = GameObject.Find("HUD/KD/Death Text").GetComponent<Text>();
+        matchTimer_text = GameObject.Find("HUD/Timer/Match Timer Text").GetComponent<Text>();
         leaderBoard_Page = GameObject.Find("HUD").transform.Find("Leader Board").transform;
         endGame_Page = GameObject.Find("畫布 Canvas").transform.Find("HUD Gameover").transform;
 
@@ -323,7 +366,19 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     }
 
     /// <summary>
-    /// 更新個人統計
+    /// 初始化 場次計時器
+    /// </summary>
+    void InitTimer()
+    {
+        currentMatchTime = matchLength;
+
+        RefreshTimerUI();
+
+        if (PhotonNetwork.IsMasterClient) timerCoroutine = StartCoroutine(Timer());
+    }
+
+    /// <summary>
+    /// 更新 個人統計
     /// </summary>
     void RefreshMyStats()
     {
@@ -336,6 +391,39 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             myKill_text.text = "0 K";
             myDeath_text.text = "0 D";
+        }
+    }
+
+    /// <summary>
+    /// 更新 時間 UI
+    /// </summary>
+    void RefreshTimerUI()
+    {
+        string minute = (currentMatchTime / 60).ToString("00");
+        string second = (currentMatchTime % 60).ToString("00");
+
+        matchTimer_text.text = $"{minute} : {second}";
+    }
+
+    /// <summary>
+    /// 場次計時器
+    /// </summary>
+    /// <returns>秒數為1</returns>
+    IEnumerator Timer()
+    {
+        yield return new WaitForSeconds(1f);
+
+        currentMatchTime -= 1;
+
+        if (currentMatchTime <= 0)
+        {
+            timerCoroutine = null;
+            UpdatePlayer_S((int)GameState.Ending, playerInfos);
+        }
+        else
+        {
+            RefreshTimer_S();
+            timerCoroutine = StartCoroutine(Timer());
         }
     }
 
@@ -376,6 +464,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
             newcard.SetActive(true);
         }
+
         // activate
         _leaderboard.gameObject.SetActive(true);
     }
@@ -426,6 +515,11 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         // set game state to end
         gameState = GameState.Ending;
 
+        // set matchTimer to 0
+        if (timerCoroutine != null) StopCoroutine(timerCoroutine);
+        currentMatchTime = 0;
+        RefreshTimerUI();
+
         // disable room
         if (PhotonNetwork.IsMasterClient)
         {
@@ -461,10 +555,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (perpetual)
         {
             // new match
-            if (PhotonNetwork.IsMasterClient)
-            {
-                NewMatch_S();
-            }
+            if (PhotonNetwork.IsMasterClient) NewMatch_S();
         }
         else
         {
@@ -515,7 +606,8 @@ public enum EventCodes : byte
     Newplayer,
     UpdatePlayers,
     ChangeStat,
-    NewMatch
+    NewMatch,
+    RefreshTimer
 }
 
 /// <summary>

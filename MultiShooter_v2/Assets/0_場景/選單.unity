@@ -1479,7 +1479,7 @@ GameObject:
   - component: {fileID: 385783057}
   - component: {fileID: 385783056}
   m_Layer: 5
-  m_Name: Text
+  m_Name: Map Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3017,7 +3017,7 @@ MonoBehaviour:
   m_MinValue: 1
   m_MaxValue: 8
   m_WholeNumbers: 1
-  m_Value: 0
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -3882,6 +3882,13 @@ MonoBehaviour:
   roomnameField: {fileID: 2042936402}
   maxPlayer_Slider: {fileID: 1010307840}
   maxPlayer_Text: {fileID: 525039490}
+  mapValue: {fileID: 385783056}
+  mapDatas:
+  - name: BattleField
+    scene: 1
+  - name: Chumpland
+    scene: 2
+  currentMap: 0
   mainPage: {fileID: 1152234608}
   roomPage: {fileID: 1582669660}
   createPage: {fileID: 1818893698}

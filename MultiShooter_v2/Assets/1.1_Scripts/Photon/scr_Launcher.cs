@@ -15,6 +15,10 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     [SerializeField] [Header("房間人數拉桿")] Slider maxPlayer_Slider;
     [SerializeField] [Header("房間人數文字")] Text maxPlayer_Text;
 
+    [SerializeField] [Header("Map text")] Text mapValue;
+    [SerializeField] [Header("Map data")] MapData[] mapDatas;
+    [SerializeField] [Header("Current map index")] int currentMap = 0;
+
     [SerializeField] [Header("主頁面")] GameObject mainPage;
     [SerializeField] [Header("房間頁面")] GameObject roomPage;
     [SerializeField] [Header("創房頁面")] GameObject createPage;
@@ -113,6 +117,10 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
             newRoomButton.transform.Find("Name").GetComponent<Text>().text = info.Name;
             newRoomButton.transform.Find("Count").GetComponent<Text>().text = info.PlayerCount + " / " + info.MaxPlayers;
 
+            if (info.CustomProperties.ContainsKey("map")) newRoomButton.transform.Find("MAP/Name").GetComponent<Text>().text = mapDatas[(int)info.CustomProperties["map"]].name;
+      
+            else newRoomButton.transform.Find("MAP/Name").GetComponent<Text>().text = "------";
+
             newRoomButton.GetComponent<Button>().onClick.AddListener(delegate { Join(newRoomButton.transform); });
         }
 
@@ -154,9 +162,11 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         RoomOptions options = new RoomOptions();
         options.MaxPlayers = (byte)maxPlayer_Slider.value;
 
+        options.CustomRoomPropertiesForLobby = new string[] { "map" };
+
         // Hashtable 為 自訂屬性的回傳值
         ExitGames.Client.Photon.Hashtable properties = new ExitGames.Client.Photon.Hashtable();
-        properties.Add("map", 0);
+        properties.Add("map", currentMap);
         options.CustomRoomProperties = properties;
 
         PhotonNetwork.CreateRoom(roomnameField.text, options);
@@ -167,7 +177,11 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     public void ChangeMap()
     {
+        currentMap++;
 
+        if (currentMap >= mapDatas.Length) currentMap = 0;
+
+        mapValue.text = "MAP : " + mapDatas[currentMap].name.ToUpper();
     }
 
     /// <summary>
@@ -190,7 +204,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
         {
             scr_PlayerData.SaveProfile(profile);
-            PhotonNetwork.LoadLevel("遊戲場景");
+            PhotonNetwork.LoadLevel(mapDatas[currentMap].scene);
         }
     }
 
@@ -229,6 +243,14 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         PageCloseAll();
         createPage.SetActive(true);
+
+        roomnameField.text = "";
+
+        currentMap = 0;
+        mapValue.text = "MAP : " + mapDatas[currentMap].name.ToUpper();
+
+        maxPlayer_Slider.value = maxPlayer_Slider.maxValue;
+        maxPlayer_Text.text = Mathf.RoundToInt(maxPlayer_Slider.value).ToString();
     }
 
     /// <summary>
@@ -274,5 +296,18 @@ public class scr_profile
         this.username = name;
         this.level = lv;
         this.xp = x;
+    }
+}
+
+[System.Serializable]
+public class MapData
+{
+    [Header("Scene name")] public string name;
+    [Header("Scene index")] public int scene;
+
+    public MapData(string _name, int _scene)
+    {
+        this.name = _name;
+        this.scene = _scene;
     }
 }

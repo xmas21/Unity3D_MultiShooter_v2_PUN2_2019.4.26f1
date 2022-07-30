@@ -2769,6 +2769,18 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 133520441}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &143228043 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 143228043, guid: cc026d28b80732f499946574a57d01a3,
+    type: 3}
+  m_PrefabInstance: {fileID: 3452567262039481851}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &146020778
 GameObject:
   m_ObjectHideFlags: 0
@@ -33910,8 +33922,12 @@ MonoBehaviour:
   - {fileID: 1842665976}
   - {fileID: 1433664147}
   myID: 0
+  matchLength: 180
+  matchTimer_text: {fileID: 143228043}
+  currentMatchTime: 0
   mainMenu: 0
   killCount: 3
+  perpetual: 0
   mapCamera: {fileID: 354571972}
 --- !u!1 &1963234849
 GameObject:
@@ -37603,22 +37619,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2018215802}
     m_Modifications:
-    - target: {fileID: 825401210, guid: cc026d28b80732f499946574a57d01a3, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 825401210, guid: cc026d28b80732f499946574a57d01a3, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 825401210, guid: cc026d28b80732f499946574a57d01a3, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 825401210, guid: cc026d28b80732f499946574a57d01a3, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3452567260637666198, guid: cc026d28b80732f499946574a57d01a3,
         type: 3}
       propertyPath: m_Pivot.x
@@ -37728,11 +37728,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: HUD
-      objectReference: {fileID: 0}
-    - target: {fileID: 3452567260637666199, guid: cc026d28b80732f499946574a57d01a3,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cc026d28b80732f499946574a57d01a3, type: 3}
