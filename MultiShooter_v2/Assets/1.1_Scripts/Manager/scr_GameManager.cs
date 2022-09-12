@@ -109,7 +109,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// <param name="profile">角色資料</param>
     public void NewPlayer_S(scr_profile profile)
     {
-        object[] package = new object[6];
+        object[] package = new object[7];
 
         package[0] = profile.username;
         package[1] = profile.level;
@@ -117,6 +117,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         package[3] = PhotonNetwork.LocalPlayer.ActorNumber;
         package[4] = (short)0;
         package[5] = (short)0;
+        package[6] = CalculateTeam();
 
         PhotonNetwork.RaiseEvent(
             (byte)EventCodes.Newplayer,
@@ -132,7 +133,15 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     /// <param name="data"></param>
     public void NewPlayer_R(object[] data)
     {
-        PlayerInfo pi = new PlayerInfo(new scr_profile((string)data[0], (int)data[1], (int)data[2]), (int)data[3], (short)data[4], (short)data[5]);
+        PlayerInfo pi = new PlayerInfo(
+            new scr_profile(
+               (string)data[0],
+               (int)data[1],
+               (int)data[2]),
+               (int)data[3],
+               (short)data[4],
+               (short)data[5],
+               (bool)data[6]);
 
         playerInfos.Add(pi);
 
@@ -152,7 +161,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         for (int i = 0; i < info.Count; i++)
         {
             // 玩家的個人資料
-            object[] piece = new object[6];
+            object[] piece = new object[7];
 
             piece[0] = info[i].profile.username;
             piece[1] = info[i].profile.level;
@@ -160,6 +169,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             piece[3] = info[i].actor;
             piece[4] = info[i].kills;
             piece[5] = info[i].deaths;
+            piece[6] = info[i].awayTeam;
 
             package[i + 1] = piece;
         }
@@ -185,7 +195,15 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         {
             object[] extract = (object[])data[i];
 
-            PlayerInfo pi = new PlayerInfo(new scr_profile((string)extract[0], (int)extract[1], (int)extract[2]), (int)extract[3], (short)extract[4], (short)extract[5]);
+            PlayerInfo pi = new PlayerInfo(
+                new scr_profile(
+                    (string)extract[0],
+                    (int)extract[1],
+                    (int)extract[2]),
+                    (int)extract[3],
+                    (short)extract[4],
+                    (short)extract[5],
+                    (bool)extract[6]);
 
             playerInfos.Add(pi);
 
@@ -293,7 +311,6 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         Spawn();
     }
 
-
     /// <summary>
     /// 刷新時間 - 發送 (Send)
     /// </summary>
@@ -329,9 +346,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     #endregion
 
     #region - Methods -
-    /// <summary>
-    /// 生成
-    /// </summary>
+    //  Spawn Player Prefabs  //
     public void Spawn()
     {
         Transform temp = spawnPoints[Random.Range(0, spawnPoints.Length)];
@@ -339,9 +354,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         PhotonNetwork.Instantiate(playerPrefab_String, temp.position, temp.rotation);
     }
 
-    /// <summary>
-    /// 驗證連結
-    /// </summary>
+    //  Valid if PhotonNetwork is Connected  //
     void ValidateConnection()
     {
         if (PhotonNetwork.IsConnected) return;
@@ -349,9 +362,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         SceneManager.LoadScene(mainMenu);
     }
 
-    /// <summary>
-    /// 初始化 UI
-    /// </summary>
+    //  Initialize Player HUD  //
     void InitializeUI()
     {
         myKill_text = GameObject.Find("HUD/KD/Kill Text").GetComponent<Text>();
@@ -365,9 +376,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         RefreshMyStats();
     }
 
-    /// <summary>
-    /// 初始化 場次計時器
-    /// </summary>
+    //  Initialize Match Timer  //
     void InitTimer()
     {
         currentMatchTime = matchLength;
@@ -377,9 +386,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         if (PhotonNetwork.IsMasterClient) timerCoroutine = StartCoroutine(Timer());
     }
 
-    /// <summary>
-    /// 更新 個人統計
-    /// </summary>
+    //  Update Self Count  //
     void RefreshMyStats()
     {
         if (playerInfos.Count > myID)
@@ -394,9 +401,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
     }
 
-    /// <summary>
-    /// 更新 時間 UI
-    /// </summary>
+    //  Update Match Timer UI  //
     void RefreshTimerUI()
     {
         string minute = (currentMatchTime / 60).ToString("00");
@@ -405,10 +410,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         matchTimer_text.text = $"{minute} : {second}";
     }
 
-    /// <summary>
-    /// 場次計時器
-    /// </summary>
-    /// <returns>秒數為1</returns>
+    //  Match Timer  //
     IEnumerator Timer()
     {
         yield return new WaitForSeconds(1f);
@@ -427,18 +429,15 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         }
     }
 
-    /// <summary>
-    /// 記分板
-    /// </summary>
-    /// <param name="_leaderboard">記分板座標</param>
+    //  Leader Board  //
     void LeaderBoard(Transform _leaderboard)
     {
         // clean (超過一個的都刪除)
         for (int i = 2; i < _leaderboard.childCount; i++) Destroy(_leaderboard.GetChild(1).gameObject);
 
         // set detail
-        _leaderboard.Find("Header/Mode").GetComponent<Text>().text = "FREE FOR ALL";
-        _leaderboard.Find("Header/Map").GetComponent<Text>().text = "Battlefield";
+        _leaderboard.Find("Header/Mode").GetComponent<Text>().text = System.Enum.GetName(typeof(GameMode), GameSetting.gameMode);
+        _leaderboard.Find("Header/Map").GetComponent<Text>().text = SceneManager.GetActiveScene().name;
 
         // cache prefab
         GameObject playercard = _leaderboard.GetChild(1).gameObject;
@@ -469,23 +468,20 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         _leaderboard.gameObject.SetActive(true);
     }
 
-    /// <summary>
-    /// 狀態確定
-    /// </summary>
+    //  Match State Check  //
     void StateCheck()
     {
-        if (gameState == GameState.Ending) EndGame();
+        if (gameState == GameState.Ending)
+            EndGame();
     }
 
-    /// <summary>
-    /// 確定分數
-    /// </summary>
+    //  Score Check  //
     void ScoreCheck()
     {
-        // define temporary variables
+        // Define temporary variables
         bool detectWin = false;
 
-        // check to see if any player has met the win conditions
+        // Check to see if any player has met the win conditions
         foreach (PlayerInfo pi in playerInfos)
         {
             // free for all
@@ -496,20 +492,16 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
             }
         }
 
-        // did we find a winner
+        // Did we find a winner
         if (detectWin)
         {
-            // are we the master client? is the game still going on
+            // Are we the master client? is the game still going on
             if (PhotonNetwork.IsMasterClient && gameState != GameState.Ending)
-            {
                 UpdatePlayer_S((int)GameState.Ending, playerInfos);
-            }
         }
     }
 
-    /// <summary>
-    /// 結束遊戲
-    /// </summary>
+    //   End Game
     void EndGame()
     {
         // set game state to end
@@ -543,33 +535,32 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         StartCoroutine(End(6f));
     }
 
-    /// <summary>
-    /// 結束遊戲
-    /// </summary>
-    /// <param name="_time">等待時間</param>
-    /// <returns></returns>
+    //   Calculate Team  //
+    bool CalculateTeam()
+    {
+        return false;
+    }
+
+    //   End Game  //
     IEnumerator End(float _time)
     {
         yield return new WaitForSeconds(_time);
 
         if (perpetual)
         {
-            // new match
-            if (PhotonNetwork.IsMasterClient) NewMatch_S();
+            // New match
+            if (PhotonNetwork.IsMasterClient)
+                NewMatch_S();
         }
         else
         {
-            // disconnect
+            // Disconnect
             PhotonNetwork.AutomaticallySyncScene = false;
             PhotonNetwork.LeaveRoom();
         }
     }
 
-    /// <summary>
-    /// 排序玩家 (按照擊殺數量排序)
-    /// </summary>
-    /// <param name="_info">玩家清單</param>
-    /// <returns></returns>
+    //  Sort Player In Kill Amount  //
     List<PlayerInfo> SortPlayer(List<PlayerInfo> _info)
     {
         List<PlayerInfo> sorted = new List<PlayerInfo>();
@@ -582,7 +573,8 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
             foreach (PlayerInfo pi in _info)
             {
-                if (sorted.Contains(pi)) continue;
+                if (sorted.Contains(pi))
+                    continue;
 
                 if (pi.kills > highest)
                 {
@@ -590,7 +582,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
                     highest = pi.kills;
                 }
             }
-            // add player
+            // Add player
             sorted.Add(killLeader);
         }
         return sorted;
@@ -630,12 +622,14 @@ public class PlayerInfo
     [Header("玩家 ID")] public int actor;
     public short kills;
     public short deaths;
+    public bool awayTeam;
 
-    public PlayerInfo(scr_profile p, int a, short k, short d)
+    public PlayerInfo(scr_profile p, int a, short k, short d, bool t)
     {
         this.profile = p;
         this.actor = a;
         this.kills = k;
         this.deaths = d;
+        this.awayTeam = t;
     }
 }

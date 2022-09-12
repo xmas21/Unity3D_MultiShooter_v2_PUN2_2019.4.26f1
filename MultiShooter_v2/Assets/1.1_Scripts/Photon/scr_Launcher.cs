@@ -16,6 +16,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     [SerializeField] [Header("房間人數文字")] Text maxPlayer_Text;
 
     [SerializeField] [Header("Map text")] Text mapValue;
+    [SerializeField] [Header("Mode text")] Text modeValue;
     [SerializeField] [Header("Map data")] MapData[] mapDatas;
     [SerializeField] [Header("Current map index")] int currentMap = 0;
 
@@ -117,9 +118,11 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
             newRoomButton.transform.Find("Name").GetComponent<Text>().text = info.Name;
             newRoomButton.transform.Find("Count").GetComponent<Text>().text = info.PlayerCount + " / " + info.MaxPlayers;
 
-            if (info.CustomProperties.ContainsKey("map")) newRoomButton.transform.Find("MAP/Name").GetComponent<Text>().text = mapDatas[(int)info.CustomProperties["map"]].name;
-      
-            else newRoomButton.transform.Find("MAP/Name").GetComponent<Text>().text = "------";
+            if (info.CustomProperties.ContainsKey("map")) 
+                newRoomButton.transform.Find("MAP/Name").GetComponent<Text>().text = mapDatas[(int)info.CustomProperties["map"]].name;
+
+            else 
+                newRoomButton.transform.Find("MAP/Name").GetComponent<Text>().text = "------";
 
             newRoomButton.GetComponent<Button>().onClick.AddListener(delegate { Join(newRoomButton.transform); });
         }
@@ -141,17 +144,36 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         PhotonNetwork.ConnectUsingSettings();
     }
 
-    /// <summary>
-    /// 加入房間
-    /// </summary>
-    /// <param name="t_button">房間的按鈕</param>
+    //- Join the room -//
     public void Join(Transform t_button)
     {
         string t_roomname = t_button.transform.Find("Name").GetComponent<Text>().text;
 
         VerifyUsername();
 
-        PhotonNetwork.JoinRoom(t_roomname);
+        RoomInfo roomInfo = null;
+        Transform buttonParent = t_button.parent;
+
+        for (int i = 0; i < buttonParent.childCount; i++)
+        {
+            if (buttonParent.GetChild(i).Equals(t_button))
+            {
+                roomInfo = room_List[i];
+                break;
+            }
+        }
+
+        if (roomInfo != null)
+        {
+            LoadGameSetting(roomInfo);
+            PhotonNetwork.JoinRoom(t_roomname);
+        }
+    }
+
+    //- Load Game Setting -//
+    public void LoadGameSetting(RoomInfo room)
+    {
+        GameSetting.gameMode = (GameMode)room.CustomProperties["mode"];
     }
 
     /// <summary>
@@ -162,11 +184,13 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         RoomOptions options = new RoomOptions();
         options.MaxPlayers = (byte)maxPlayer_Slider.value;
 
-        options.CustomRoomPropertiesForLobby = new string[] { "map" };
+        options.CustomRoomPropertiesForLobby = new string[] { "map", "mode" };
 
         // Hashtable 為 自訂屬性的回傳值
         ExitGames.Client.Photon.Hashtable properties = new ExitGames.Client.Photon.Hashtable();
+
         properties.Add("map", currentMap);
+        properties.Add("mode", (int)GameSetting.gameMode);
         options.CustomRoomProperties = properties;
 
         PhotonNetwork.CreateRoom(roomnameField.text, options);
@@ -182,6 +206,18 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         if (currentMap >= mapDatas.Length) currentMap = 0;
 
         mapValue.text = "MAP : " + mapDatas[currentMap].name.ToUpper();
+    }
+
+    //- Change Game Mode -//
+    public void ChangeMode()
+    {
+        int newMode = (int)GameSetting.gameMode + 1;
+
+        if (newMode >= System.Enum.GetValues(typeof(GameMode)).Length)
+            newMode = 0;
+
+        GameSetting.gameMode = (GameMode)newMode;
+        modeValue.text = "MODE : " + System.Enum.GetName(typeof(GameMode), newMode);
     }
 
     /// <summary>
@@ -249,6 +285,9 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         currentMap = 0;
         mapValue.text = "MAP : " + mapDatas[currentMap].name.ToUpper();
 
+        GameSetting.gameMode = (GameMode)0;
+        modeValue.text = "MODE : " + System.Enum.GetName(typeof(GameMode), (GameMode)0);
+
         maxPlayer_Slider.value = maxPlayer_Slider.maxValue;
         maxPlayer_Text.text = Mathf.RoundToInt(maxPlayer_Slider.value).ToString();
     }
@@ -299,6 +338,9 @@ public class scr_profile
     }
 }
 
+/// <summary>
+/// 地圖資訊
+/// </summary>
 [System.Serializable]
 public class MapData
 {
