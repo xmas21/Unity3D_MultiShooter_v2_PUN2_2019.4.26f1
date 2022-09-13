@@ -115,14 +115,31 @@ public class scr_Weapon : MonoBehaviourPunCallbacks
                 bulletHole.transform.SetParent(hit.collider.transform);
                 Destroy(bulletHole, 6f);
 
-                if (hit.collider.gameObject.layer == 11)
+                if (photonView.IsMine)
                 {
-                    // give damages
-                    hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage, PhotonNetwork.LocalPlayer.ActorNumber);
+                    if (hit.collider.gameObject.layer == 11)
+                    {
+                        bool applyDamage = false;
 
-                    // show hitmarker
-                    hitmarker_img.color = new Color(1, 1, 1, 1);
-                    hitmarkerTime = 0.5f;
+                        if (GameSetting.gameMode == GameMode.FFA)
+                            applyDamage = true;
+
+                        if (GameSetting.gameMode == GameMode.TDM)
+                        {
+                            if (hit.collider.transform.root.gameObject.GetComponent<scr_PlayerController>().awayTeam != GameSetting.isAwayTeam)
+                                applyDamage = true;
+                        }
+
+                        if (applyDamage)
+                        {
+                            // give damages
+                            hit.collider.gameObject.GetPhotonView().RPC("TakeDamage", RpcTarget.All, weaponDatas[currentWeaponIndex].damage, PhotonNetwork.LocalPlayer.ActorNumber);
+
+                            // show hitmarker
+                            hitmarker_img.color = new Color(1, 1, 1, 1); 
+                            hitmarkerTime = 0.5f;
+                        }
+                    }
                 }
             }
         }

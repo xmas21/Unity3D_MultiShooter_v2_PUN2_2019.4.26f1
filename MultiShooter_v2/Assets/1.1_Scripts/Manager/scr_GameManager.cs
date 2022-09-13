@@ -25,12 +25,13 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public int mainMenu = 0;
     public int killCount = 3;
     public bool perpetual;
+    bool playerAdded;
 
     [Header("地圖攝影機")] public GameObject mapCamera;
 
     Text myKill_text;
     Text myDeath_text;
-    Transform leaderBoard_Page;
+    public Transform leaderBoard_Page;
     Transform endGame_Page;
 
     GameState gameState = GameState.Waiting;
@@ -43,18 +44,25 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
         InitializeUI();
         InitTimer();
         NewPlayer_S(scr_Launcher.profile);
-        Spawn();
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            playerAdded = true;
+            Spawn();
+        }
     }
 
     void Update()
     {
-        if (gameState == GameState.Ending) return;
+        if (gameState == GameState.Ending)
+            return;
 
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            // true => false
-            if (leaderBoard_Page.gameObject.activeSelf) leaderBoard_Page.gameObject.SetActive(false);
-            else LeaderBoard(leaderBoard_Page);
+            if (leaderBoard_Page.gameObject.activeSelf)
+                leaderBoard_Page.gameObject.SetActive(false);
+            else
+                LeaderBoard(leaderBoard_Page);
         }
     }
     #endregion
@@ -188,6 +196,15 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     public void UpdatePlayer_R(object[] data)
     {
         gameState = (GameState)data[0];
+
+        if (playerInfos.Count < data.Length - 1)
+        {
+            foreach (GameObject go in GameObject.FindGameObjectsWithTag("Player"))
+            {
+                go.GetComponent<scr_PlayerController>().TrySync();
+            }
+        }
+
         playerInfos = new List<PlayerInfo>();
 
         // 每個玩家的資訊
@@ -207,7 +224,17 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
             playerInfos.Add(pi);
 
-            if (PhotonNetwork.LocalPlayer.ActorNumber == pi.actor) myID = i - 1;
+            if (PhotonNetwork.LocalPlayer.ActorNumber == pi.actor)
+            {
+                myID = i - 1;
+
+                if (!playerAdded)
+                {
+                    playerAdded = true;
+                    GameSetting.isAwayTeam = pi.awayTeam;
+                    Spawn();
+                }
+            }
         }
 
         StateCheck();
@@ -432,12 +459,24 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     //  Leader Board  //
     void LeaderBoard(Transform _leaderboard)
     {
+        if (GameSetting.gameMode == GameMode.FFA)
+            _leaderboard = _leaderboard.Find("FFA");
+        if (GameSetting.gameMode == GameMode.TDM)
+            _leaderboard = _leaderboard.Find("TDM");
+
         // clean (超過一個的都刪除)
-        for (int i = 2; i < _leaderboard.childCount; i++) Destroy(_leaderboard.GetChild(1).gameObject);
+        for (int i = 2; i < _leaderboard.GetChild(0).childCount; i++)
+            Destroy(_leaderboard.GetChild(0).gameObject);
 
         // set detail
-        _leaderboard.Find("Header/Mode").GetComponent<Text>().text = System.Enum.GetName(typeof(GameMode), GameSetting.gameMode);
-        _leaderboard.Find("Header/Map").GetComponent<Text>().text = SceneManager.GetActiveScene().name;
+        // _leaderboard.GetChild(0).GetChild(0).Find("Mode").GetComponent<Text>().text = System.Enum.GetName(typeof(GameMode), GameSetting.gameMode);
+        // _leaderboard.GetChild(0).GetChild(0).Find("Map").GetComponent<Text>().text = SceneManager.GetActiveScene().name;
+
+        if (GameSetting.gameMode == GameMode.TDM)
+        {
+            _leaderboard.Find("Header/Red Team Kills").GetComponent<Text>().text = "0";
+            _leaderboard.Find("Header/Blue Team Kills").GetComponent<Text>().text = "0";
+        }
 
         // cache prefab
         GameObject playercard = _leaderboard.GetChild(1).gameObject;
@@ -448,11 +487,20 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
         // display per card (already sorted)
         bool alternateColor = false;
+
         foreach (PlayerInfo pi in sorted)
         {
             GameObject newcard = Instantiate(playercard, _leaderboard) as GameObject;
 
-            if (alternateColor) newcard.GetComponent<Image>().color += new Color32(0, 0, 0, 180);
+            if (GameSetting.gameMode == GameMode.TDM)
+            {
+                newcard.transform.Find("Red").gameObject.SetActive(pi.awayTeam);
+                newcard.transform.Find("Blue").gameObject.SetActive(!pi.awayTeam);
+            }
+
+            if (alternateColor)
+                newcard.GetComponent<Image>().color += new Color32(0, 0, 0, 180);
+
             alternateColor = !alternateColor;
 
             newcard.transform.Find("Level").GetComponent<Text>().text = pi.profile.level.ToString("00");
@@ -466,6 +514,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
 
         // activate
         _leaderboard.gameObject.SetActive(true);
+        _leaderboard.parent.gameObject.SetActive(true);
     }
 
     //  Match State Check  //
@@ -538,7 +587,7 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     //   Calculate Team  //
     bool CalculateTeam()
     {
-        return false;
+        return PhotonNetwork.CurrentRoom.PlayerCount % 2 == 0;
     }
 
     //   End Game  //
@@ -565,26 +614,96 @@ public class scr_GameManager : MonoBehaviourPunCallbacks, IOnEventCallback
     {
         List<PlayerInfo> sorted = new List<PlayerInfo>();
 
-        while (sorted.Count < _info.Count)
+        if (GameSetting.gameMode == GameMode.FFA)
         {
-            // set default
-            short highest = -1;
-            PlayerInfo killLeader = _info[0];
+            while (sorted.Count < _info.Count)
+            {
+                // set default
+                short highest = -1;
+                PlayerInfo killLeader = _info[0];
+
+                foreach (PlayerInfo pi in _info)
+                {
+                    if (sorted.Contains(pi))
+                        continue;
+
+                    if (pi.kills > highest)
+                    {
+                        killLeader = pi;
+                        highest = pi.kills;
+                    }
+                }
+                // Add player
+                sorted.Add(killLeader);
+            }
+        }
+
+        if (GameSetting.gameMode == GameMode.TDM)
+        {
+            List<PlayerInfo> redSorted = new List<PlayerInfo>();
+            List<PlayerInfo> blueSorted = new List<PlayerInfo>();
+
+            int redSize = 0;
+            int blueSize = 0;
 
             foreach (PlayerInfo pi in _info)
             {
-                if (sorted.Contains(pi))
-                    continue;
-
-                if (pi.kills > highest)
-                {
-                    killLeader = pi;
-                    highest = pi.kills;
-                }
+                if (pi.awayTeam)
+                    blueSize++;
+                else
+                    redSize++;
             }
-            // Add player
-            sorted.Add(killLeader);
+
+            while (redSorted.Count < redSize)
+            {
+                short highest = -1;
+                PlayerInfo playerInfos = _info[0];
+
+                foreach (PlayerInfo pi in _info)
+                {
+                    if (pi.awayTeam)
+                        continue;
+
+                    if (redSorted.Contains(pi))
+                        continue;
+
+                    if (pi.kills > highest)
+                    {
+                        playerInfos = pi;
+                        highest = pi.kills;
+                    }
+                }
+
+                redSorted.Add(playerInfos);
+            }
+
+            while (blueSorted.Count < blueSize)
+            {
+                short highest = -1;
+                PlayerInfo playerInfos = _info[0];
+
+                foreach (PlayerInfo pi in _info)
+                {
+                    if (pi.awayTeam)
+                        continue;
+
+                    if (blueSorted.Contains(pi))
+                        continue;
+
+                    if (pi.kills > highest)
+                    {
+                        playerInfos = pi;
+                        highest = pi.kills;
+                    }
+                }
+
+                blueSorted.Add(playerInfos);
+            }
+
+            sorted.AddRange(redSorted);
+            sorted.AddRange(blueSorted);
         }
+
         return sorted;
     }
     #endregion

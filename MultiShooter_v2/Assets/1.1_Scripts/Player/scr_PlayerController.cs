@@ -31,7 +31,10 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [Header("玩家攝影機")] public Camera playerCamera;
     [Header("玩家名稱")] public TextMeshPro playerUsername;
 
+    public Renderer[] teamIndicators;
+
     [HideInInspector] public bool isGrounded;
+    [HideInInspector] public bool awayTeam;
     [HideInInspector] public scr_profile playerProfile; // 玩家資訊
 
     bool isMoving = false;              // 是否在跑步
@@ -56,6 +59,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
     Text ammo_UI;
     Text username_UI;
+    Text team_UI;
     Image healthBar;
     Rigidbody rig;
     scr_Weapon scr_weapon;
@@ -73,6 +77,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         healthBar = GameObject.Find("HUD/血量顯示器/Health/bar").GetComponent<Image>();
         ammo_UI = GameObject.Find("HUD/子彈/Text").GetComponent<Text>();
         username_UI = GameObject.Find("HUD/Username/Text").GetComponent<Text>();
+        team_UI = GameObject.Find("HUD/Team/Text").GetComponent<Text>();
         rig = GetComponent<Rigidbody>();
     }
 
@@ -80,7 +85,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     {
         cameraHolder.SetActive(photonView.IsMine);
 
-        if (!photonView.IsMine) gameObject.layer = 11;
+        if (!photonView.IsMine) 
+            gameObject.layer = 11;
 
         walkFOV = playerCamera.fieldOfView;
         runFOV = walkFOV * 1.15f;
@@ -89,15 +95,38 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         camera_origin = cameraHolder.transform.localPosition;
         weapon_origin = weapon_Trans.localPosition;
         shoot_origin = shoot_Trans.localPosition;
+
+        photonView.RPC("SyncProfile", RpcTarget.All, scr_Launcher.profile.username, scr_Launcher.profile.level, scr_Launcher.profile.xp);
+
+        if (GameSetting.gameMode == GameMode.TDM)
+        {
+            photonView.RPC("SyncTeam", RpcTarget.All, GameSetting.isAwayTeam);
+
+            if (GameSetting.isAwayTeam)
+            {
+                team_UI.text = "Red Team";
+                team_UI.color = Color.red;
+            }
+            else
+            {
+                team_UI.text = "Blue Team";
+                team_UI.color = Color.blue;
+            }
+        }
+        else
+            team_UI.gameObject.SetActive(false);
+
     }
 
     void Update()
     {
-        // 只控制自己生成的物件
-        if (!photonView.IsMine) return;
+        if (!photonView.IsMine)
+            return;
+
         Pause();
 
-        if (scr_SceneManager.paused) return;
+        if (scr_SceneManager.paused)
+            return;
 
         Cursor.lockState = CursorLockMode.Locked;
 
@@ -110,9 +139,9 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         BreathSwitch();
         CalculateSpeed();
 
-        if (Input.GetKey(KeyCode.U)) TakeDamage(50, -1);
+        if (Input.GetKey(KeyCode.U))
+            TakeDamage(50, -1);
 
-        photonView.RPC("SyncProfile", RpcTarget.All, scr_Launcher.profile.username, scr_Launcher.profile.level, scr_Launcher.profile.xp);
     }
 
     void FixedUpdate()
@@ -130,11 +159,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     #endregion
 
     #region - RPC - 
-    /// <summary>
-    /// 改變座標位置
-    /// </summary>
-    /// <param name="camera_offset">相機位移量</param>
-    /// <param name="time">時間</param>
+    //- Change Position -//
     [PunRPC]
     void ChangePosition(float camera_offset, float time)
     {
@@ -144,10 +169,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, cameraHolder.transform.localPosition, Time.deltaTime * time);
     }
 
-    /// <summary>
-    /// 座標回歸
-    /// </summary>
-    /// <param name="time">時間</param>
+    //- Reset Position -//
     [PunRPC]
     void ResetPosition(float time)
     {
@@ -156,23 +178,29 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         shoot_Trans.localPosition = Vector3.Lerp(shoot_Trans.localPosition, shoot_origin, Time.deltaTime * time);
     }
 
-    /// <summary>
-    /// 更新玩家資訊
-    /// </summary>
-    /// <param name="p_profile">玩家資訊</param>
+    //- Sync Player Profile -//
     [PunRPC]
     void SyncProfile(string p_name, int p_level, int p_xp)
     {
         playerProfile = new scr_profile(p_name, p_level, p_xp);
         playerUsername.text = playerProfile.username;
     }
+
+    //- Sync Player Team Renderer -//
+    [PunRPC]
+    void SyncTeam(bool p_awayTeam)
+    {
+        awayTeam = p_awayTeam;
+
+        if (awayTeam)
+            ColorTeamIndicators(Color.red);
+        else
+            ColorTeamIndicators(Color.blue);
+    }
     #endregion
 
     #region - Methods -
-    /// <summary>
-    /// 受傷
-    /// </summary>
-    /// <param name="damage">傷害值</param>s
+    //- Hurt -//
     public void TakeDamage(int damage, int _actor)
     {
         if (photonView.IsMine)
@@ -193,9 +221,19 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 視角
-    /// </summary>
+    //- Try Sync Profile & Team -//
+    public void TrySync()
+    {
+        if (!photonView.IsMine)
+            return;
+
+        photonView.RPC("SyncProfile", RpcTarget.All, scr_Launcher.profile.username, scr_Launcher.profile.level, scr_Launcher.profile.xp);
+
+        if (GameSetting.gameMode == GameMode.TDM)
+            photonView.RPC("SyncTeam", RpcTarget.All, GameSetting.isAwayTeam);
+    }
+
+    //- Player View -//
     void View()
     {
         // 角色直接旋轉 (左右)
@@ -214,9 +252,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         shoot_Trans.rotation = cameraHolder.transform.rotation;
     }
 
-    /// <summary>
-    /// 所有移動
-    /// </summary>
+    //- Player Movement -//
     void Movement()
     {
         // 一般移動
@@ -246,9 +282,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 正常移動
-    /// </summary>
+    //- Player Move -//
     void Move()
     {
         // 偵測鍵盤 H : AD | V : WS
@@ -268,9 +302,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         moveDir = Vector3.SmoothDamp(moveDir, direction * currentSpeed, ref moveSmoothVelocity, moveSmoothTime);
     }
 
-    /// <summary>
-    /// 滑行
-    /// </summary>
+    //- Slide Move -//
     void Slide()
     {
         bool slide = Input.GetKey(KeyCode.LeftShift);
@@ -292,9 +324,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 蹲下
-    /// </summary>
+    //- Crouch Move -//
     void Crounch()
     {
         bool crouch = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
@@ -314,9 +344,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 跳躍
-    /// </summary>0
+    //- Jump Move -//
     void Jump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
@@ -325,20 +353,14 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 呼吸
-    /// </summary>
-    /// <param name="p_x">X 倍率</param>
-    /// <param name="p_y">Y 倍率</param>
+    //- Breath Make Weapon Sway -//
     void Breath(float p_x, float p_y)
     {
         Vector3 temp = new Vector3(Mathf.Cos(counter) * p_x, Mathf.Sin(counter * 2) * p_y, 0);
         target_weapon_Trans = temp + weapon_Trans.localPosition;
     }
 
-    /// <summary>
-    /// 呼吸搖擺切換
-    /// </summary>
+    //- Breath Sway Switch -//
     void BreathSwitch()
     {
         direction = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
@@ -375,9 +397,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 死亡
-    /// </summary>
+    //- Die -//
     void Die()
     {
         scr_gameManager.Spawn();
@@ -385,9 +405,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         PhotonNetwork.Destroy(gameObject);
     }
 
-    /// <summary>
-    /// 更新顯示器資訊
-    /// </summary>
+    //- Update Player HUD -//
     void UpdateHUD()
     {
         healthBar.fillAmount = (float)currentHealth / maxHealth;
@@ -395,9 +413,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         username_UI.text = scr_Launcher.profile.username;
     }
 
-    /// <summary>
-    /// 計算角色速度
-    /// </summary>
+    //- Calculate Player Move Speed -//
     void CalculateSpeed()
     {
         // 瞄準 : 速度最慢
@@ -438,18 +454,23 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    /// <summary>
-    /// 暫停
-    /// </summary>
+    //- Game Pause -//
     void Pause()
     {
         paused = Input.GetKeyDown(KeyCode.Escape);
 
         if (paused)
         {
-            GameObject.Find("畫布").GetComponent<scr_SceneManager>().Pause();
+            GameObject.Find("畫布 Canvas").GetComponent<scr_SceneManager>().Pause();
             moveDir = Vector3.zero;
         }
+    }
+
+    //- Sync Team Color -//
+    void ColorTeamIndicators(Color p_color)
+    {
+        foreach (Renderer renderer in teamIndicators)
+            renderer.material.color = p_color;
     }
     #endregion
 }
